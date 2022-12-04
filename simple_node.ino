@@ -39,10 +39,38 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 // ----------------------------------------------------------------------------
 
+std::vector< std::function<void(void)> > ms_callbacks;
+
+void IRAM_ATTR one_ms_callback( )
+{
+  std::for_each( ms_callbacks.begin(), ms_callbacks.end(), [](auto f){ f(); } );
+}
+
+void ms_callback_setup( )
+{
+  timer1_isr_init();
+  timer1_write(313); // 1ms interrupt
+  timer1_attachInterrupt(one_ms_callback);
+  timer1_enable(TIM_DIV256, TIM_EDGE, TIM_LOOP);
+}
+
+void ms_callback_loop( )
+{
+  ;
+}
+
+void ms_callback_add( std::function< void(void) > f )
+{
+  // _probably_ don't need to protect this from concurrent access...
+  ms_callbacks.push_back( f );
+}
+
+// ----------------------------------------------------------------------------
+
 static volatile uint32_t pattern = PATTERN_WIFI_DISCONNECTED;
 static volatile int pattern_count = 0;
 
-void ICACHE_RAM_ATTR one_ms_callback()
+void IRAM_ATTR patterns_ms_callback( void )
 {
   if (pattern_count++ == 100)
   {
@@ -52,12 +80,18 @@ void ICACHE_RAM_ATTR one_ms_callback()
   }
 }
 
-void enable_1ms_interrupt()
+void patterns_setup( )
 {
-  timer1_isr_init();
-  timer1_write(313); // 1ms interrupt
-  timer1_attachInterrupt(one_ms_callback);
-  timer1_enable(TIM_DIV256, TIM_EDGE, TIM_LOOP);
+  pinMode( LED_BUILTIN, OUTPUT );
+  ms_callback_add( patterns_ms_callback );
+    // I could have done this as a lambda, but felt like using
+    // the IRAM_ATTR (because it seemed like a good idea) which
+    // meant I really needed a separate function.
+}
+
+void patterns_loop( )
+{
+  ;
 }
 
 // ----------------------------------------------------------------------------
@@ -439,10 +473,9 @@ void setup()
   Serial.println("");
   Serial.println(Version);
 
-  pinMode(LED_BUILTIN, OUTPUT);
-  enable_1ms_interrupt();
-
+  ms_callback_setup();
   uptime_setup();
+  patterns_setup();
   wifi_setup();
 #ifdef NODE_HAS_NTP
   ntp_setup();
