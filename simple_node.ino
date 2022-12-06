@@ -64,28 +64,39 @@ void run_loop_exec( )
 
 // ----------------------------------------------------------------------------
 
-static volatile uint32_t pattern = PATTERN_WIFI_DISCONNECTED;
-static volatile int pattern_count = 0;
-Ticker pattern_ticker;
-
-void patterns_setup( )
+class Patterns : public SetupAndLoop // : public Singleton
 {
-  pinMode( LED_BUILTIN, OUTPUT );
-  pattern_ticker.attach_ms( 1, []()
+public:
+  Patterns( int pin = LED_BUILTIN )
+    : SetupAndLoop()
+    , pin{ pin }
+    , pattern{ 0 }
+  { }
+
+  virtual void setup()
   {
-    if (pattern_count++ == 100)
-    {
-      pattern = (pattern >> 1) | (pattern << 31); // roll right 1
-      digitalWrite(LED_BUILTIN, ~pattern & 1);
-      pattern_count = 0;
-    }
-  } );
-}
+    pinMode( pin, OUTPUT );
 
-void patterns_loop( )
-{
-  ;
-}
+    ticker.attach_ms( 100, [this]() {
+      this->pattern = (this->pattern >> 1) | (this->pattern << 31); // roll right 1
+      digitalWrite( this->pin, ~(this->pattern) & 1 );
+    } );
+    }
+
+  virtual void loop() { }
+
+  void set( uint32_t p )
+  {
+    pattern = p;
+  }
+
+private:
+  const int pin;
+  uint32_t pattern;
+  Ticker ticker;
+};
+
+Patterns patterns;
 
 // ----------------------------------------------------------------------------
 
@@ -341,7 +352,7 @@ void ntp_wifi_up( )
 
 void wifi_disconnected( const WiFiEventStationModeDisconnected & )
 {
-  pattern = PATTERN_WIFI_DISCONNECTED;
+  patterns.set( PATTERN_WIFI_DISCONNECTED );
   Serial.println( F("WiFi disconnected") );
 
   schedule_function( []() {
@@ -359,13 +370,13 @@ void wifi_disconnected( const WiFiEventStationModeDisconnected & )
 
 void wifi_connected( const WiFiEventStationModeConnected & )
 {
-  pattern = PATTERN_WIFI_CONNECTED;
+  patterns.set( PATTERN_WIFI_CONNECTED );
   Serial.println( F("WiFi connected") );
 }
 
 void wifi_got_ip( const WiFiEventStationModeGotIP &e )
 {
-  pattern = PATTERN_WIFI_GOT_IP;
+  patterns.set( PATTERN_WIFI_GOT_IP );
   Serial.print( F("WiFi got IP: ") );
   Serial.println( e.ip );
 
@@ -481,8 +492,9 @@ void setup( )
   Serial.println(Version);
 
   run_loop_add_and_setup( uptime );
+  run_loop_add_and_setup( patterns );
+  patterns.set( PATTERN_WIFI_DISCONNECTED );
 
-  patterns_setup();
   wifi_setup();
 #ifdef NODE_HAS_NTP
   ntp_setup();
