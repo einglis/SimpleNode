@@ -39,54 +39,47 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 // ----------------------------------------------------------------------------
 
-std::vector< std::function<void(void)> > ms_callbacks;
-
-void IRAM_ATTR one_ms_callback( )
+struct SetupAndLoop
 {
-  std::for_each( ms_callbacks.begin(), ms_callbacks.end(), [](auto f){ f(); } );
+  virtual void setup() = 0;
+  virtual void loop() = 0;
+  virtual ~SetupAndLoop() = 0;
+};
+
+SetupAndLoop::~SetupAndLoop( ) { }
+  // pure virtual destructor implementation
+
+std::vector< SetupAndLoop* > sal_list;
+
+void run_loop_add_and_setup( SetupAndLoop& sal )
+{
+  sal_list.push_back( &sal );
+  sal.setup();
 }
 
-void ms_callback_setup( )
+void run_loop_exec( )
 {
-  timer1_isr_init();
-  timer1_write(313); // 1ms interrupt
-  timer1_attachInterrupt(one_ms_callback);
-  timer1_enable(TIM_DIV256, TIM_EDGE, TIM_LOOP);
-}
-
-void ms_callback_loop( )
-{
-  ;
-}
-
-void ms_callback_add( std::function< void(void) > f )
-{
-  // _probably_ don't need to protect this from concurrent access...
-  ms_callbacks.push_back( f );
+  std::for_each( sal_list.begin(), sal_list.end(), [](auto sal){ sal->loop(); } );
 }
 
 // ----------------------------------------------------------------------------
 
 static volatile uint32_t pattern = PATTERN_WIFI_DISCONNECTED;
 static volatile int pattern_count = 0;
-
-void IRAM_ATTR patterns_ms_callback( void )
-{
-  if (pattern_count++ == 100)
-  {
-    pattern = (pattern >> 1) | (pattern << 31); // roll right 1
-    digitalWrite(LED_BUILTIN, ~pattern & 1);
-    pattern_count = 0;
-  }
-}
+Ticker pattern_ticker;
 
 void patterns_setup( )
 {
   pinMode( LED_BUILTIN, OUTPUT );
-  ms_callback_add( patterns_ms_callback );
-    // I could have done this as a lambda, but felt like using
-    // the IRAM_ATTR (because it seemed like a good idea) which
-    // meant I really needed a separate function.
+  pattern_ticker.attach_ms( 1, []()
+  {
+    if (pattern_count++ == 100)
+    {
+      pattern = (pattern >> 1) | (pattern << 31); // roll right 1
+      digitalWrite(LED_BUILTIN, ~pattern & 1);
+      pattern_count = 0;
+    }
+  } );
 }
 
 void patterns_loop( )
@@ -96,23 +89,37 @@ void patterns_loop( )
 
 // ----------------------------------------------------------------------------
 
-static uint32_t uptime_secs = 0; // 136 years
-Ticker uptime_ticker;
-
-void uptime_setup( )
+class Uptime : public SetupAndLoop // : public Singleton
 {
-  uptime_ticker.attach( 1, [](){ uptime_secs++; } );
-}
+public:
+  Uptime( )
+    : SetupAndLoop()
+    , counter{ 0 }
+  { }
 
-void uptime_loop( )
-{
-  static uint32_t last_uptime = 0;
-  if (uptime_secs - last_uptime > 5)
+  virtual void setup( )
   {
-    Serial.println(uptime_secs);
-    last_uptime = uptime_secs;
+    ticker.attach( 1, [this](){ this->counter++; } );
   }
-}
+
+  virtual void loop( )
+  {
+    static uint32_t last_uptime = 0;
+    if (secs() - last_uptime > 5)
+    {
+      Serial.println( secs() );
+      last_uptime = secs();
+    }
+  }
+
+  uint32_t secs( ) { return counter; }
+
+private:
+  uint32_t counter; // 32 bits is enough for 136 years of seconds
+  Ticker ticker;
+};
+
+Uptime uptime;
 
 // ----------------------------------------------------------------------------
 
@@ -127,7 +134,7 @@ void web_setup( )
     message += Version;
     message += "\n";
     message += "Uptime ";
-    message += uptime_secs;
+    message += uptime.secs();
     message += " seconds\n";
 
     request->send(200, "text/plain", message);
@@ -466,15 +473,15 @@ void pixels_loop( )
 
 // ----------------------------------------------------------------------------
 
-void setup() 
+void setup( )
 {
   Serial.begin(57600);
   Serial.println("");
   Serial.println("");
   Serial.println(Version);
 
-  ms_callback_setup();
-  uptime_setup();
+  run_loop_add_and_setup( uptime );
+
   patterns_setup();
   wifi_setup();
 #ifdef NODE_HAS_NTP
@@ -491,9 +498,10 @@ void setup()
 #endif
 }
 
-void loop() 
+void loop( )
 {
-  uptime_loop();  // just reporting
+  run_loop_exec();
+
   //wifi_loop();
 #ifdef NODE_HAS_NTP
   ntp_loop();  // just reporting
