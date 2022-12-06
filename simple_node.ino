@@ -41,8 +41,8 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 struct SetupAndLoop
 {
-  virtual void setup() = 0;
-  virtual void loop() = 0;
+  virtual void setup() { };
+  virtual void loop() { };
   virtual ~SetupAndLoop() = 0;
 };
 
@@ -82,8 +82,6 @@ public:
       digitalWrite( this->pin, ~(this->pattern) & 1 );
     } );
     }
-
-  virtual void loop() { }
 
   void set( uint32_t p )
   {
