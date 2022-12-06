@@ -64,12 +64,13 @@ void run_loop_exec( )
 
 // ----------------------------------------------------------------------------
 
-class Patterns : public SetupAndLoop // : public Singleton
+class Patterns
+  : public SetupAndLoop
+  //, public Singleton
 {
 public:
   Patterns( int pin = LED_BUILTIN )
-    : SetupAndLoop()
-    , pin{ pin }
+    : pin{ pin }
     , pattern{ 0 }
   { }
 
@@ -78,10 +79,10 @@ public:
     pinMode( pin, OUTPUT );
 
     ticker.attach_ms( 100, [this]() {
-      this->pattern = (this->pattern >> 1) | (this->pattern << 31); // roll right 1
-      digitalWrite( this->pin, ~(this->pattern) & 1 );
+      pattern = (pattern >> 1) | (pattern << 31); // roll right 1
+      digitalWrite( pin, ~(pattern) & 1 );
     } );
-    }
+  }
 
   void set( uint32_t p )
   {
@@ -98,34 +99,50 @@ Patterns patterns;
 
 // ----------------------------------------------------------------------------
 
-class Uptime : public SetupAndLoop // : public Singleton
+class Uptime
+  : public SetupAndLoop
+  //, public Singleton
 {
 public:
   Uptime( )
-    : SetupAndLoop()
-    , counter{ 0 }
+    : counter{ 0 }
   { }
 
   virtual void setup( )
   {
-    ticker.attach( 1, [this](){ this->counter++; } );
-  }
-
-  virtual void loop( )
-  {
-    static uint32_t last_uptime = 0;
-    if (secs() - last_uptime > 5)
-    {
-      Serial.println( secs() );
-      last_uptime = secs();
-    }
+    update_ticker.attach( 1, [this](){ counter++; } );
+    report_ticker.attach( 6, [this](){ report(); } );
   }
 
   uint32_t secs( ) { return counter; }
 
 private:
   uint32_t counter; // 32 bits is enough for 136 years of seconds
-  Ticker ticker;
+  Ticker update_ticker;
+  Ticker report_ticker;
+
+  void report( )
+  {
+    Serial.print( F("Uptime: ") );
+
+    const uint32_t uptime_secs = secs();
+    const uint32_t uptime_mins = uptime_secs / 60;
+    const uint32_t uptime_hours = uptime_mins / 60;
+    const uint32_t uptime_days = uptime_hours / 24;
+
+    #define PLURAL(n) n, (n!=1)?"s":""
+    if (uptime_days > 0)
+      Serial.printf( "%u day%s, ", PLURAL(uptime_days) ); // can't use F("")
+    if (uptime_hours > 0)
+      Serial.printf( "%u hour%s", PLURAL(uptime_hours % 24) );
+    else if (uptime_mins > 0)
+      Serial.printf( "%u minute%s", PLURAL(uptime_mins) );
+    else
+      Serial.printf( "%u second%s", PLURAL(uptime_secs) );
+    #undef PLURAL
+
+    Serial.println( "" );
+  }
 };
 
 Uptime uptime;
@@ -291,58 +308,76 @@ void mqtt_wifi_up( )
 
 // ----------------------------------------------------------------------------
 
+struct WifiObserver
+{
+  virtual void wifi_up() { };
+  virtual void wifi_down() { };
+  virtual ~WifiObserver() = 0;
+};
+
+WifiObserver::~WifiObserver( ) { }
+  // pure virtual destructor implementation
+
+
 #ifdef NODE_HAS_NTP
 
-WiFiUDP ntpUDP;
-NTPClient ntp_client( ntpUDP, NTP_HOST );
-
-Ticker ntp_ticker;
-
-void ntp_setup( )
+class Ntp
+  : public SetupAndLoop
+  , public WifiObserver
+  //, public Singleton
 {
-  ;
-}
+public:
+  Ntp()
+    : client( my_wifi, NTP_HOST/*lazy*/ )
+  { }
 
-void ntp_loop( )
-{
-  static long last = millis();
-  if (millis() - last > 10*1001)
+  virtual void setup()
   {
-    Serial.println( ntp_client.getFormattedTime() );
-    last = millis();
-  }
-}
-
-void ntp_wifi_down( )
-{
-  ntp_ticker.detach();
-  ntp_client.end();
-}
-
-void ntp_refresh( int phase = 0 )
-{
-  Serial.println( F("refresh NTP") );
-
-  int wait;
-  if (ntp_client.update())
-  {
-    wait = 10 * 60; // ten minutes after success 
-    phase = 0; // restart at 1 second on next fail
-  }
-  else
-  {
-    wait = 1 << phase; // 1, 2, 4,... seconds
-    phase = min( ++phase, 5 ); // 1 << 5 == 32 seconds
+    report_ticker.attach_scheduled( 11, [this](){
+      Serial.print( F("NTP time: ") );
+      Serial.println( client.getFormattedTime() );
+    } );
   }
 
-  ntp_ticker.once_scheduled( wait, [phase](){ ntp_refresh( phase ); } );
-}
+  virtual void wifi_up()
+  {
+    client.begin();
+    refresh();
+  }
 
-void ntp_wifi_up( )
-{
-  ntp_client.begin();
-  ntp_refresh();
-}
+  virtual void wifi_down()
+  {
+    refresh_ticker.detach();
+    client.end();
+  }
+
+private:
+  WiFiUDP my_wifi;
+  NTPClient client;
+  Ticker report_ticker;
+  Ticker refresh_ticker;
+
+  void refresh( int phase = 0 )
+  {
+    Serial.println( F("NTP refresh") );
+
+    int wait;
+    if (client.update())
+    {
+      wait = 10 * 60; // ten minutes after success
+      phase = 0; // restart at 1 second on next fail
+    }
+    else
+    {
+      wait = 1 << phase; // 1, 2, 4,... seconds
+      phase = min( ++phase, 5 ); // 1 << 5 == 32 seconds
+    }
+
+    refresh_ticker.once_scheduled( wait, [this, phase](){ refresh( phase ); } );
+  }
+};
+
+Ntp ntp;
 
 #endif
 
@@ -361,7 +396,7 @@ void wifi_disconnected( const WiFiEventStationModeDisconnected & )
     web_wifi_down();
 #endif
 #ifdef NODE_HAS_NTP
-    ntp_wifi_down();
+    ntp.wifi_down(); // just testing for now
 #endif
   } );
 }
@@ -386,7 +421,7 @@ void wifi_got_ip( const WiFiEventStationModeGotIP &e )
     web_wifi_up();
 #endif
 #ifdef NODE_HAS_NTP
-    ntp_wifi_up();
+    ntp.wifi_up(); // just testing for now
 #endif
   } );
 }
@@ -495,7 +530,7 @@ void setup( )
 
   wifi_setup();
 #ifdef NODE_HAS_NTP
-  ntp_setup();
+  run_loop_add_and_setup( ntp );
 #endif
 #ifdef NODE_HAS_MQTT
   mqtt_setup();
@@ -513,9 +548,6 @@ void loop( )
   run_loop_exec();
 
   //wifi_loop();
-#ifdef NODE_HAS_NTP
-  ntp_loop();  // just reporting
-#endif
 #ifdef NODE_HAS_MQTT
   mqtt_loop();
 #endif
