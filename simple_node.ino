@@ -49,18 +49,25 @@ struct SetupAndLoop
 SetupAndLoop::~SetupAndLoop( ) { }
   // pure virtual destructor implementation
 
-std::vector< SetupAndLoop* > sal_list;
 
-void run_loop_add_and_setup( SetupAndLoop& sal )
+class SetupAndLoopManager // don't like this naming
 {
-  sal_list.push_back( &sal );
-  sal.setup();
-}
+public:
+  static void add( SetupAndLoop& sal )
+  {
+    list.push_back( &sal );
+    sal.setup();
+  }
+  static void exec( )
+  {
+    for ( auto sal : list )
+      sal->loop();
+  }
+private:
+  static std::vector< SetupAndLoop* > list; // declaration...
+};
 
-void run_loop_exec( )
-{
-  std::for_each( sal_list.begin(), sal_list.end(), [](auto sal){ sal->loop(); } );
-}
+std::vector< SetupAndLoop* > SetupAndLoopManager::list; // ...definition
 
 // ----------------------------------------------------------------------------
 
@@ -524,13 +531,13 @@ void setup( )
   Serial.println("");
   Serial.println(Version);
 
-  run_loop_add_and_setup( uptime );
-  run_loop_add_and_setup( patterns );
+  SetupAndLoopManager::add( uptime );
+  SetupAndLoopManager::add( patterns );
   patterns.set( PATTERN_WIFI_DISCONNECTED );
 
   wifi_setup();
 #ifdef NODE_HAS_NTP
-  run_loop_add_and_setup( ntp );
+  SetupAndLoopManager::add( ntp );
 #endif
 #ifdef NODE_HAS_MQTT
   mqtt_setup();
@@ -545,7 +552,7 @@ void setup( )
 
 void loop( )
 {
-  run_loop_exec();
+  SetupAndLoopManager::exec();
 
   //wifi_loop();
 #ifdef NODE_HAS_MQTT
