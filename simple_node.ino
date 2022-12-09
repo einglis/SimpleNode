@@ -529,7 +529,8 @@ void setup( )
   Serial.begin(57600);
   Serial.println("");
   Serial.println("");
-  Serial.println(Version);
+  Serial.println( Version );
+  Serial.println( ESP.getResetReason() );
 
   SetupAndLoopManager::add( uptime );
   SetupAndLoopManager::add( patterns );
