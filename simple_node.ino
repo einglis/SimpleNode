@@ -325,6 +325,30 @@ struct WifiObserver
 WifiObserver::~WifiObserver( ) { }
   // pure virtual destructor implementation
 
+class WifiObservers
+{
+public:
+  static void add( WifiObserver& wo )
+  {
+    list.push_back( &wo );
+  }
+  static void wifi_up( )
+  {
+    for ( auto wo : list )
+      wo->wifi_up();
+  }
+  static void wifi_down( )
+  {
+    for ( auto wo : list )
+      wo->wifi_down();
+  }
+private:
+  static std::vector< WifiObserver* > list; // declaration...
+};
+
+std::vector< WifiObserver* > WifiObservers::list; // ...definit
+
+
 
 #ifdef NODE_HAS_NTP
 
@@ -340,6 +364,8 @@ public:
 
   virtual void setup()
   {
+    WifiObservers::add( *this );
+
     report_ticker.attach_scheduled( 11, [this](){
       Serial.print( F("NTP time: ") );
       Serial.println( client.getFormattedTime() );
@@ -402,9 +428,8 @@ void wifi_disconnected( const WiFiEventStationModeDisconnected & )
 #ifdef NODE_HAS_WEB
     web_wifi_down();
 #endif
-#ifdef NODE_HAS_NTP
-    ntp.wifi_down(); // just testing for now
-#endif
+
+    WifiObservers::wifi_down();
   } );
 }
 
@@ -427,9 +452,8 @@ void wifi_got_ip( const WiFiEventStationModeGotIP &e )
 #ifdef NODE_HAS_WEB
     web_wifi_up();
 #endif
-#ifdef NODE_HAS_NTP
-    ntp.wifi_up(); // just testing for now
-#endif
+
+    WifiObservers::wifi_up();
   } );
 }
 
