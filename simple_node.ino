@@ -492,60 +492,68 @@ void wifi_loop( )
 #define PIXELS_PIN  13 // 13: dev, 14: island
 #define NUMPIXELS  251 // deliberately stressful
 
-static uint32_t Wheel(byte WheelPos) {
-  if(WheelPos < 85) {
-   return Adafruit_NeoPixel::Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-  } else if(WheelPos < 170) {
-   WheelPos -= 85;
-   return Adafruit_NeoPixel::Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  } else {
-   WheelPos -= 170;
-   return Adafruit_NeoPixel::Color(0, WheelPos * 3, 255 - WheelPos * 3);
-  }
-}
-
-Adafruit_NeoPixel* pixels = nullptr;
-Ticker pixel_ticker;
-
-void pixel_update( )
+class Pixels
+  : public SetupAndLoop
 {
-  static bool ping_pong = true;
-    // split the work in two two chunks to have some 
-    // tiny smoothing effect on the system load.
+public:
+  Pixels( int num_pixels = NUMPIXELS, int pin = PIXELS_PIN ) // lazy
+    : pixels( num_pixels, pin, NEO_GRB + NEO_KHZ800 )
+    , work_phase{ 0 }
+    , pattern_phase{ 0 }
+    { }
 
-  if (ping_pong)
+  virtual void setup()
   {
-    static uint32_t j = 0;
-    j++;
+    //pinMode( pin, OUTPUT );
+      // the Adafruit_NeoPixel constructor will have done this for us
 
-    const uint32_t colour = Wheel( j & 0xff );
-    for (int i = 0; i < pixels->numPixels(); i++)
-        pixels->setPixelColor( i, colour );
+    pixels.setBrightness( 4 );
+    pixels.begin(); // This initializes the NeoPixel library.
+
+    ticker.attach( 0.1, [this](){ update(); } );
   }
-  else
+  virtual bool empty_loop() { return true; }
+
+private:
+  Adafruit_NeoPixel pixels;
+  Ticker ticker;
+  int work_phase;
+  uint8_t pattern_phase;
+
+  void update( )
   {
-    pixels->show();
+    // called in SYS context, so be quick
+
+    if (work_phase == 0)
+    {
+      pattern_phase++; // happy to overflow and loop
+
+      for (int i = 0; i < pixels.numPixels(); i++)
+          pixels.setPixelColor( i, Wheel( pattern_phase ) );
+    }
+    else
+    {
+      pixels.show();
+    }
+
+    work_phase = !work_phase;
   }
 
-  ping_pong = !ping_pong;
-}
+  uint32_t Wheel(byte WheelPos)
+  {
+    if(WheelPos < 85) {
+      return Adafruit_NeoPixel::Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+    } else if(WheelPos < 170) {
+      WheelPos -= 85;
+      return Adafruit_NeoPixel::Color(255 - WheelPos * 3, 0, WheelPos * 3);
+    } else {
+      WheelPos -= 170;
+      return Adafruit_NeoPixel::Color(0, WheelPos * 3, 255 - WheelPos * 3);
+    }
+  }
+};
 
-void pixels_setup( )
-{
-  pinMode( PIXELS_PIN, OUTPUT );
-
-  pixels = new Adafruit_NeoPixel( NUMPIXELS,PIXELS_PIN, NEO_GRB + NEO_KHZ800 );
-
-  pixels->begin(); // This initializes the NeoPixel library.
-  pixels->setBrightness( 4 );
-
-  pixel_ticker.attach( 0.1, [](){ pixel_update(); } );
-}
-
-void pixels_loop( )
-{
-  ;
-}
+Pixels pixels;
 
 #endif
 
@@ -571,7 +579,7 @@ void setup( )
   mqtt_setup();
 #endif
 #ifdef NODE_HAS_PIXELS
-  pixels_setup();
+  SetupAndLoopManager::add( pixels );
 #endif
 #ifdef NODE_HAS_WEB
   web_setup();
@@ -585,9 +593,6 @@ void loop( )
   //wifi_loop();
 #ifdef NODE_HAS_MQTT
   mqtt_loop();
-#endif
-#ifdef NODE_HAS_PIXELS
-  //pixels_loop();
 #endif
 #ifdef NODE_HAS_WEB
   web_loop();
