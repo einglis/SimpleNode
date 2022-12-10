@@ -584,12 +584,18 @@ void setup( )
 
 void loop( )
 {
-  // hmmm. once MQTT is connected, we appear to loop at only about 100 Hz...
-  static int x = 0;
-  if (++x > 1000)
+  static long last = millis();
+  static int loops = 0;
+
+  loops++;
+  long now = millis();
+  if (now - 1000 > last)
   {
-    Serial.println("loopy");
-    x = 0;
+    Serial.print( F("Loop rate is about ") );
+    Serial.print( loops * 1000 / (now-last) );
+    Serial.println( F(" Hz") );
+    loops = 0;
+    last = now;
   }
 
   Loopies::exec();
