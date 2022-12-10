@@ -427,6 +427,7 @@ public:
     handlers.push_back( WiFi.onStationModeGotIP( [this](auto e){ wifi_got_ip(e); } ) );
 
     Serial.println( F("Looking for WiFi...") );
+    patterns.set( PATTERN_WIFI_DISCONNECTED );
 
     WiFi.mode( WIFI_STA );
     WiFi.begin( WIFI_SSID, WIFI_PASSWD );
@@ -562,10 +563,7 @@ void setup( )
   Serial.println( ESP.getResetReason() );
 
   uptime.setup();
-
   patterns.setup();
-  patterns.set( PATTERN_WIFI_DISCONNECTED );
-
   wifi.setup();
 
 #ifdef NODE_HAS_NTP
