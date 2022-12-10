@@ -254,10 +254,7 @@ void web_wifi_up( )
 
 class Mqtt
   : public WifiObserver
-  , public Loopy
 {
-  typedef std::shared_ptr<Adafruit_MQTT_Subscribe> MqttSub;
-
 public:
   Mqtt()
     : client( &my_wifi, MQTT_HOST, MQTT_PORT, MQTT_CLIENT, ""/*key*/) // lazy config
@@ -274,7 +271,7 @@ public:
       Serial.println( F("MQTT: failed to set keepalive") );
 
 
-    MqttSub sub = std::make_shared<Adafruit_MQTT_Subscribe>( &client, "node/cmd" );
+    auto sub = std::make_shared<Adafruit_MQTT_Subscribe>( &client, "node/cmd" );
     sub->setCallback( test_callback );
 
     const bool sub_rc = client.subscribe( sub.get() );
@@ -284,14 +281,6 @@ public:
       subs.push_back( sub );
 
     WifiObservers::add( this );
-    Loopies::add( this );
-  }
-
-  void loop( ) // Loopies
-  {
-    Adafruit_MQTT_Subscribe *sub = client.readSubscription( 0/*timeout*/ );
-    if (sub)
-      client.processSubscriptionPacket( sub );
   }
 
   virtual void wifi_down( ) // WifiObserver
@@ -314,7 +303,7 @@ private:
   Adafruit_MQTT_Client client;
   Ticker poll_ticker;
   Ticker ping_ticker;
-  std::vector< MqttSub > subs;
+  std::vector< std::shared_ptr<Adafruit_MQTT_Subscribe> > subs;
 
   static void test_callback( char *data, uint16_t len )
   {
@@ -338,33 +327,34 @@ private:
 
   void poll( bool was_connected = false )
   {
-    const bool is_connected = client.connected();
-    if (is_connected ^ was_connected)
+    if (client.connected())
     {
-      if (is_connected)
-        mqtt_connected();
-      else
-        mqtt_disconnected();
-    }
-
-    int wait = 1; // default poll interval
-
-    if (!is_connected)
-    {
-      Serial.println( F("MQTT: trying to connect") );
-      if (client.connect() != 0) /* 0 == connected*/
+      Adafruit_MQTT_Subscribe *sub = client.readSubscription( 0/*timeout*/ );
+      for (int i = 0; sub && i < 10; i++) // i count is to limit potential batch size
       {
-        // first connection attempt inevitably fails as the library
-        // starts with a subcription sequence of zero, which is invalid.
-        Serial.println( F("MQTT: connect failed; try again in five") );
-        wait = 5; // rate-limit re-connection
+        client.processSubscriptionPacket( sub );
+        sub = client.readSubscription( 0/*timeout*/ );
       }
     }
+    else // (!client.connected())
+    {
+      if (was_connected)
+        mqtt_disconnected();
 
-    poll_ticker.once_scheduled( wait, [this, is_connected](){ poll( is_connected ); } );
-      // is_connected might still be false, even if we've just re-connected, but this
-      // will allow us to notice the change next time around.  If we disconnect again
-      // in the meantime, we _won't_ notice the change, but that's logically fine.
+      Serial.println( F("MQTT: trying to connect") );
+      if (client.connect() == 0) /* 0 == connected*/
+      {
+        mqtt_connected();
+        poll_ticker.attach_ms_scheduled( 100, [this](){ poll( true ); } );
+      }
+      else
+      {
+        // the first connection attempt invariably fails as the library
+        // starts with a subcription sequence of zero, which is invalid.
+        Serial.println( F("MQTT: connect failed; will try again") );
+        poll_ticker.once_scheduled( 5, [this](){ poll( false ); } );
+      }
+    }
   }
 };
 
@@ -618,7 +608,7 @@ void loop( )
 
   loops++;
   long now = millis();
-  if (now - 1000 > last)
+  if (now - last > 1000)
   {
     Serial.print( F("Loop rate is about ") );
     Serial.print( loops * 1000 / (now-last) );
