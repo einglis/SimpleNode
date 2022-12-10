@@ -43,6 +43,8 @@ struct SetupAndLoop
 {
   virtual void setup() { };
   virtual void loop() { };
+  virtual bool empty_loop() { return false; }
+    // overload this to return true if loop()'ing is not required
   virtual ~SetupAndLoop() = 0;
 };
 
@@ -55,7 +57,8 @@ class SetupAndLoopManager // don't like this naming
 public:
   static void add( SetupAndLoop& sal )
   {
-    list.push_back( &sal );
+    if (!sal.empty_loop())
+      list.push_back( &sal );
     sal.setup();
   }
   static void exec( )
@@ -90,6 +93,7 @@ public:
       digitalWrite( pin, ~(pattern) & 1 );
     } );
   }
+  virtual bool empty_loop() { return true; }
 
   void set( uint32_t p )
   {
@@ -120,6 +124,7 @@ public:
     update_ticker.attach( 1, [this](){ counter++; } );
     report_ticker.attach( 6, [this](){ report(); } );
   }
+  virtual bool empty_loop() { return true; }
 
   uint32_t secs( ) { return counter; }
 
@@ -371,6 +376,7 @@ public:
       Serial.println( client.getFormattedTime() );
     } );
   }
+  virtual bool empty_loop() { return true; }
 
   virtual void wifi_up()
   {
