@@ -252,96 +252,122 @@ void web_wifi_up( )
 
 #ifdef NODE_HAS_MQTT
 
-WiFiClient mqtt_wifi;
-Adafruit_MQTT_Client* mqtt_client = nullptr;
-  // would be pretty benign to have this statically initialised; nothing major happens
-Ticker mqtt_poll_ticker;
-Ticker mqtt_ping_ticker;
-
-void mqtt_connected( )
+class Mqtt
+  : public WifiObserver
+  , public Loopy
 {
-  Serial.println( F("MQTT connected") );
-  mqtt_ping_ticker.attach_scheduled( MQTT_KEEPALIVE, []() {
-    Serial.println( F("MQTT ping") );
-    mqtt_client->ping(); // can block for up to 500 ms.
-  } );
-}
-void mqtt_disconnected( )
-{
-  Serial.println( F("MQTT disconnected") );
-  mqtt_ping_ticker.detach();
-}
+  typedef std::shared_ptr<Adafruit_MQTT_Subscribe> MqttSub;
 
+public:
+  Mqtt()
+    : client( &my_wifi, MQTT_HOST, MQTT_PORT, MQTT_CLIENT, ""/*key*/) // lazy config
+    { }
 
-void mqtt_test_callback(char *data, uint16_t len) {
-  Serial.print("Hey we're in an mqtt callback: ");
-  Serial.println(data);
-}
-
-void mqtt_setup( )
-{
-  mqtt_client = new Adafruit_MQTT_Client( &mqtt_wifi, MQTT_HOST, MQTT_PORT, MQTT_CLIENT, ""/*key*/ );
-
-  static Adafruit_MQTT_Subscribe feed = Adafruit_MQTT_Subscribe( mqtt_client, "node/cmd" );
-
-  feed.setCallback( mqtt_test_callback );
-  bool sub_rc = mqtt_client->subscribe( &feed );
-  bool will_rc = mqtt_client->will( "will_topic", "will_payload" );
-
-  mqtt_client->setKeepAliveInterval( MQTT_KEEPALIVE * 1.5 );
-}
-
-void mqtt_loop( )
-{
-  Adafruit_MQTT_Subscribe *sub = mqtt_client->readSubscription( 0/*timeout*/ );
-  if (sub)
-    mqtt_client->processSubscriptionPacket(sub);
-}
-
-void mqtt_poll( bool was_connected = false )
-{
-  const bool is_connected = mqtt_client->connected();
-  if (is_connected ^ was_connected)
+  void setup( )
   {
-    if (is_connected)
-      mqtt_connected();
+    const bool will_rc = client.will( "will_topic", "will_payload" );
+    if (!will_rc)
+      Serial.println( F("MQTT: failed to set will") );
+
+    const bool keepalive_rc = client.setKeepAliveInterval( MQTT_KEEPALIVE * 1.5 );
+    if (!keepalive_rc)
+      Serial.println( F("MQTT: failed to set keepalive") );
+
+
+    MqttSub sub = std::make_shared<Adafruit_MQTT_Subscribe>( &client, "node/cmd" );
+    sub->setCallback( test_callback );
+
+    const bool sub_rc = client.subscribe( sub.get() );
+    if (!sub_rc)
+      Serial.println( F("MQTT: failed to subscribe to a topic") );
     else
-      mqtt_disconnected();
+      subs.push_back( sub );
+
+    WifiObservers::add( this );
+    Loopies::add( this );
   }
 
-  int wait = 1; // default poll interval
-
-  if (!is_connected)
+  void loop( ) // Loopies
   {
-    Serial.println( F("trying to connect to MQTT") );
-    if (mqtt_client->connect() != 0) /* 0 == connected*/
-    {
-      // first connection attempt inevitably fails as the library
-      // starts with a subcription sequence of zero, which is invalid.
-      Serial.println( F("failed; try again in five") );
-      wait = 5; // rate-limit re-connection
-    }
+    Adafruit_MQTT_Subscribe *sub = client.readSubscription( 0/*timeout*/ );
+    if (sub)
+      client.processSubscriptionPacket( sub );
   }
 
-  mqtt_poll_ticker.once_scheduled( wait, [is_connected](){ mqtt_poll( is_connected ); } );
-    // is_connected might still be false, even if we've just re-connected, but this
-    // will allow us to notice the change next time around.  If we disconnect again
-    // in the meantime, we _won't_ notice the change, but that's logically fine.
-}
+  virtual void wifi_down( ) // WifiObserver
+  {
+    Serial.println( F("MQTT: stopping") );
+    client.disconnect();
 
-void mqtt_wifi_down( )
-{
-  Serial.println( F("stopping MQTT") );
-  mqtt_client->disconnect();
+    poll_ticker.detach();
+  }
 
-  mqtt_poll_ticker.detach();
-}
+  virtual void wifi_up( ) // WifiObserver
+  {
+    Serial.println( F("MQTT: starting") );
+    poll();
+  }
 
-void mqtt_wifi_up( )
-{
-  Serial.println( F("starting MQTT") );
-  mqtt_poll();
-}
+private:
+  WiFiClient my_wifi;
+  Adafruit_MQTT_Client client;
+  Ticker poll_ticker;
+  Ticker ping_ticker;
+  std::vector< MqttSub > subs;
+
+  static void test_callback( char *data, uint16_t len )
+  {
+    Serial.print("MQTT: message... ");
+    Serial.println(data);
+  }
+
+  void mqtt_connected( )
+  {
+    Serial.println( F("MQTT: connected") );
+    ping_ticker.attach_scheduled( MQTT_KEEPALIVE, [this]() {
+      Serial.println( F("MQTT: ping") );
+      client.ping(); // can block for up to 500 ms.
+    } );
+  }
+  void mqtt_disconnected( )
+  {
+    Serial.println( F("MQTT: disconnected") );
+    ping_ticker.detach();
+  }
+
+  void poll( bool was_connected = false )
+  {
+    const bool is_connected = client.connected();
+    if (is_connected ^ was_connected)
+    {
+      if (is_connected)
+        mqtt_connected();
+      else
+        mqtt_disconnected();
+    }
+
+    int wait = 1; // default poll interval
+
+    if (!is_connected)
+    {
+      Serial.println( F("MQTT: trying to connect") );
+      if (client.connect() != 0) /* 0 == connected*/
+      {
+        // first connection attempt inevitably fails as the library
+        // starts with a subcription sequence of zero, which is invalid.
+        Serial.println( F("MQTT: connect failed; try again in five") );
+        wait = 5; // rate-limit re-connection
+      }
+    }
+
+    poll_ticker.once_scheduled( wait, [this, is_connected](){ poll( is_connected ); } );
+      // is_connected might still be false, even if we've just re-connected, but this
+      // will allow us to notice the change next time around.  If we disconnect again
+      // in the meantime, we _won't_ notice the change, but that's logically fine.
+  }
+};
+
+Mqtt mqtt;
 
 #endif
 
@@ -359,21 +385,21 @@ public:
 
   void setup()
   {
-    WifiObservers::add( this );
-
     report_ticker.attach_scheduled( 11, [this](){
       Serial.print( F("NTP time: ") );
       Serial.println( client.getFormattedTime() );
     } );
+
+    WifiObservers::add( this );
   }
 
-  virtual void wifi_up()
+  virtual void wifi_up() // WifiObserver
   {
     client.begin();
     refresh();
   }
 
-  virtual void wifi_down()
+  virtual void wifi_down() // WifiObserver
   {
     refresh_ticker.detach();
     client.end();
@@ -444,9 +470,6 @@ private:
     Serial.println( F("WiFi disconnected") );
 
     schedule_function( []() {
-  #ifdef NODE_HAS_MQTT
-      mqtt_wifi_down();
-  #endif
   #ifdef NODE_HAS_WEB
       web_wifi_down();
   #endif
@@ -468,9 +491,6 @@ private:
     Serial.println( e.ip );
 
     schedule_function( []() {
-  #ifdef NODE_HAS_MQTT
-      mqtt_wifi_up();
-  #endif
   #ifdef NODE_HAS_WEB
       web_wifi_up();
   #endif
@@ -570,7 +590,7 @@ void setup( )
   ntp.setup();
 #endif
 #ifdef NODE_HAS_MQTT
-  mqtt_setup();
+  mqtt.setup();
 #endif
 #ifdef NODE_HAS_PIXELS
   pixels.setup();
@@ -598,9 +618,6 @@ void loop( )
 
   Loopies::exec();
 
-#ifdef NODE_HAS_MQTT
-  mqtt_loop();
-#endif
 #ifdef NODE_HAS_WEB
   web_loop();
 #endif
