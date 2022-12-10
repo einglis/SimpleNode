@@ -39,43 +39,38 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 // ----------------------------------------------------------------------------
 
-struct SetupAndLoop
+struct Loopy
 {
-  virtual void setup() { };
-  virtual void loop() { };
-  virtual bool empty_loop() { return false; }
-    // overload this to return true if loop()'ing is not required
-  virtual ~SetupAndLoop() = 0;
+  virtual void loop() = 0;
+  virtual ~Loopy() = 0;
 };
 
-SetupAndLoop::~SetupAndLoop( ) { }
+Loopy::~Loopy( ) { }
   // pure virtual destructor implementation
 
+// ------------------------------------
 
-class SetupAndLoopManager // don't like this naming
+class Loopies
 {
 public:
-  static void add( SetupAndLoop& sal )
+  static void add( Loopy* l )
   {
-    if (!sal.empty_loop())
-      list.push_back( &sal );
-    sal.setup();
+    list.push_back( l );
   }
   static void exec( )
   {
-    for ( auto sal : list )
-      sal->loop();
+    for ( auto l : list )
+      l->loop();
   }
 private:
-  static std::vector< SetupAndLoop* > list; // declaration...
+  static std::vector< Loopy* > list; // declaration...
 };
 
-std::vector< SetupAndLoop* > SetupAndLoopManager::list; // ...definition
+std::vector< Loopy* > Loopies::list; // ...definition
 
 // ----------------------------------------------------------------------------
 
 class Patterns
-  : public SetupAndLoop
 {
 public:
   Patterns( int pin = LED_BUILTIN )
@@ -83,7 +78,7 @@ public:
     , pattern{ 0 }
   { }
 
-  virtual void setup()
+  void setup()
   {
     pinMode( pin, OUTPUT );
 
@@ -92,7 +87,6 @@ public:
       digitalWrite( pin, ~(pattern) & 1 );
     } );
   }
-  virtual bool empty_loop() { return true; }
 
   void set( uint32_t p )
   {
@@ -110,19 +104,17 @@ Patterns patterns;
 // ----------------------------------------------------------------------------
 
 class Uptime
-  : public SetupAndLoop
 {
 public:
   Uptime( )
     : counter{ 0 }
   { }
 
-  virtual void setup( )
+  void setup( )
   {
     update_ticker.attach( 1, [this](){ counter++; } );
     report_ticker.attach( 6, [this](){ report(); } );
   }
-  virtual bool empty_loop() { return true; }
 
   uint32_t secs( ) { return counter; }
 
@@ -328,6 +320,8 @@ struct WifiObserver
 WifiObserver::~WifiObserver( ) { }
   // pure virtual destructor implementation
 
+// ------------------------------------
+
 class WifiObservers
 {
 public:
@@ -351,20 +345,19 @@ private:
 
 std::vector< WifiObserver* > WifiObservers::list; // ...definit
 
-
+// ----------------------------------------------------------------------------
 
 #ifdef NODE_HAS_NTP
 
 class Ntp
-  : public SetupAndLoop
-  , public WifiObserver
+  : public WifiObserver
 {
 public:
   Ntp()
     : client( my_wifi, NTP_HOST/*lazy*/ )
   { }
 
-  virtual void setup()
+  void setup()
   {
     WifiObservers::add( *this );
 
@@ -373,7 +366,6 @@ public:
       Serial.println( client.getFormattedTime() );
     } );
   }
-  virtual bool empty_loop() { return true; }
 
   virtual void wifi_up()
   {
@@ -420,10 +412,9 @@ Ntp ntp;
 // ----------------------------------------------------------------------------
 
 class NodeWiFi
-  : public SetupAndLoop
 {
 public:
-  virtual void setup()
+  void setup()
   {
     Serial.print( F("Wifi MAC: ") );
     Serial.println(WiFi.macAddress().c_str());
@@ -442,7 +433,6 @@ public:
       // it transpires that this will keep looking forever,
       // _and_ try to reconnect if the connection is lost.
   }
-  virtual bool empty_loop() { return true; }
 
 private:
   std::vector< WiFiEventHandler > handlers;
@@ -499,7 +489,6 @@ NodeWiFi wifi;
 #define NUMPIXELS  251 // deliberately stressful
 
 class Pixels
-  : public SetupAndLoop
 {
 public:
   Pixels( int num_pixels = NUMPIXELS, int pin = PIXELS_PIN ) // lazy
@@ -508,7 +497,7 @@ public:
     , pattern_phase{ 0 }
     { }
 
-  virtual void setup()
+  void setup()
   {
     //pinMode( pin, OUTPUT );
       // the Adafruit_NeoPixel constructor will have done this for us
@@ -518,7 +507,6 @@ public:
 
     ticker.attach( 0.1, [this](){ update(); } );
   }
-  virtual bool empty_loop() { return true; }
 
 private:
   Adafruit_NeoPixel pixels;
@@ -573,20 +561,21 @@ void setup( )
   Serial.println( Version );
   Serial.println( ESP.getResetReason() );
 
-  SetupAndLoopManager::add( uptime );
-  SetupAndLoopManager::add( patterns );
+  uptime.setup();
+
+  patterns.setup();
   patterns.set( PATTERN_WIFI_DISCONNECTED );
 
-  SetupAndLoopManager::add( wifi );
+  wifi.setup();
 
 #ifdef NODE_HAS_NTP
-  SetupAndLoopManager::add( ntp );
+  ntp.setup();
 #endif
 #ifdef NODE_HAS_MQTT
   mqtt_setup();
 #endif
 #ifdef NODE_HAS_PIXELS
-  SetupAndLoopManager::add( pixels );
+  pixels.setup();
 #endif
 #ifdef NODE_HAS_WEB
   web_setup();
@@ -595,7 +584,15 @@ void setup( )
 
 void loop( )
 {
-  SetupAndLoopManager::exec();
+  // hmmm. once MQTT is connected, we appear to loop at only about 100 Hz...
+  static int x = 0;
+  if (++x > 1000)
+  {
+    Serial.println("loopy");
+    x = 0;
+  }
+
+  Loopies::exec();
 
 #ifdef NODE_HAS_MQTT
   mqtt_loop();
