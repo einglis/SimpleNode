@@ -85,9 +85,9 @@ WifiObserver::~WifiObserver( ) { }
 class WifiObservers
 {
 public:
-  static void add( WifiObserver& wo )
+  static void add( WifiObserver* wo )
   {
-    list.push_back( &wo );
+    list.push_back( wo );
   }
   static void wifi_up( )
   {
@@ -359,7 +359,7 @@ public:
 
   void setup()
   {
-    WifiObservers::add( *this );
+    WifiObservers::add( this );
 
     report_ticker.attach_scheduled( 11, [this](){
       Serial.print( F("NTP time: ") );
