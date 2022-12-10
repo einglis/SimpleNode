@@ -76,7 +76,6 @@ std::vector< SetupAndLoop* > SetupAndLoopManager::list; // ...definition
 
 class Patterns
   : public SetupAndLoop
-  //, public Singleton
 {
 public:
   Patterns( int pin = LED_BUILTIN )
@@ -112,7 +111,6 @@ Patterns patterns;
 
 class Uptime
   : public SetupAndLoop
-  //, public Singleton
 {
 public:
   Uptime( )
@@ -360,7 +358,6 @@ std::vector< WifiObserver* > WifiObservers::list; // ...definit
 class Ntp
   : public SetupAndLoop
   , public WifiObserver
-  //, public Singleton
 {
 public:
   Ntp()
