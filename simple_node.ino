@@ -70,6 +70,43 @@ std::vector< Loopy* > Loopies::list; // ...definition
 
 // ----------------------------------------------------------------------------
 
+struct WifiObserver
+{
+  virtual void wifi_up() { };
+  virtual void wifi_down() { };
+  virtual ~WifiObserver() = 0;
+};
+
+WifiObserver::~WifiObserver( ) { }
+  // pure virtual destructor implementation
+
+// ------------------------------------
+
+class WifiObservers
+{
+public:
+  static void add( WifiObserver& wo )
+  {
+    list.push_back( &wo );
+  }
+  static void wifi_up( )
+  {
+    for ( auto wo : list )
+      wo->wifi_up();
+  }
+  static void wifi_down( )
+  {
+    for ( auto wo : list )
+      wo->wifi_down();
+  }
+private:
+  static std::vector< WifiObserver* > list; // declaration...
+};
+
+std::vector< WifiObserver* > WifiObservers::list; // ...definit
+
+// ----------------------------------------------------------------------------
+
 class Patterns
 {
 public:
@@ -307,43 +344,6 @@ void mqtt_wifi_up( )
 }
 
 #endif
-
-// ----------------------------------------------------------------------------
-
-struct WifiObserver
-{
-  virtual void wifi_up() { };
-  virtual void wifi_down() { };
-  virtual ~WifiObserver() = 0;
-};
-
-WifiObserver::~WifiObserver( ) { }
-  // pure virtual destructor implementation
-
-// ------------------------------------
-
-class WifiObservers
-{
-public:
-  static void add( WifiObserver& wo )
-  {
-    list.push_back( &wo );
-  }
-  static void wifi_up( )
-  {
-    for ( auto wo : list )
-      wo->wifi_up();
-  }
-  static void wifi_down( )
-  {
-    for ( auto wo : list )
-      wo->wifi_down();
-  }
-private:
-  static std::vector< WifiObserver* > list; // declaration...
-};
-
-std::vector< WifiObserver* > WifiObservers::list; // ...definit
 
 // ----------------------------------------------------------------------------
 
