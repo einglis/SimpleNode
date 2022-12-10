@@ -300,6 +300,7 @@ public:
     client.disconnect();
 
     poll_ticker.detach();
+    mqtt_disconnected();
   }
 
   virtual void wifi_up( ) // WifiObserver
@@ -440,6 +441,10 @@ Ntp ntp;
 class NodeWiFi
 {
 public:
+  NodeWiFi( )
+    : is_connected{ false }
+    { }
+
   void setup()
   {
     Serial.print( F("Wifi MAC: ") );
@@ -463,11 +468,16 @@ public:
 
 private:
   std::vector< WiFiEventHandler > handlers;
+  bool is_connected;
 
   void wifi_disconnected( const WiFiEventStationModeDisconnected& )
   {
+    if (!is_connected) // this function tends to get called over-and-over
+      return
+
     patterns.set( PATTERN_WIFI_DISCONNECTED );
     Serial.println( F("WiFi disconnected") );
+    is_connected = false;
 
     schedule_function( []() {
   #ifdef NODE_HAS_WEB
@@ -482,6 +492,7 @@ private:
   {
     patterns.set( PATTERN_WIFI_CONNECTED );
     Serial.println( F("WiFi connected") );
+    is_connected = true;
   }
 
   void wifi_got_ip( const WiFiEventStationModeGotIP &e )
