@@ -419,71 +419,77 @@ Ntp ntp;
 
 // ----------------------------------------------------------------------------
 
-void wifi_disconnected( const WiFiEventStationModeDisconnected & )
+class NodeWiFi
+  : public SetupAndLoop
 {
-  patterns.set( PATTERN_WIFI_DISCONNECTED );
-  Serial.println( F("WiFi disconnected") );
+public:
+  virtual void setup()
+  {
+    Serial.print( F("Wifi MAC: ") );
+    Serial.println(WiFi.macAddress().c_str());
 
-  schedule_function( []() {
-#ifdef NODE_HAS_MQTT
-    mqtt_wifi_down();
-#endif
-#ifdef NODE_HAS_WEB
-    web_wifi_down();
-#endif
+    WiFi.hostname( WIFI_HOSTNAME );
+    WiFi.persistent(false); // don't stash config in Flash
 
-    WifiObservers::wifi_down();
-  } );
-}
+    handlers.push_back( WiFi.onStationModeDisconnected( [this](auto e){ wifi_disconnected(e); } ) );
+    handlers.push_back( WiFi.onStationModeConnected( [this](auto e){ wifi_connected(e); } ) );
+    handlers.push_back( WiFi.onStationModeGotIP( [this](auto e){ wifi_got_ip(e); } ) );
 
-void wifi_connected( const WiFiEventStationModeConnected & )
-{
-  patterns.set( PATTERN_WIFI_CONNECTED );
-  Serial.println( F("WiFi connected") );
-}
+    Serial.println( F("Looking for WiFi...") );
 
-void wifi_got_ip( const WiFiEventStationModeGotIP &e )
-{
-  patterns.set( PATTERN_WIFI_GOT_IP );
-  Serial.print( F("WiFi got IP: ") );
-  Serial.println( e.ip );
+    WiFi.mode( WIFI_STA );
+    WiFi.begin( WIFI_SSID, WIFI_PASSWD );
+      // it transpires that this will keep looking forever,
+      // _and_ try to reconnect if the connection is lost.
+  }
+  virtual bool empty_loop() { return true; }
 
-  schedule_function( []() {
-#ifdef NODE_HAS_MQTT
-    mqtt_wifi_up();
-#endif
-#ifdef NODE_HAS_WEB
-    web_wifi_up();
-#endif
+private:
+  std::vector< WiFiEventHandler > handlers;
 
-    WifiObservers::wifi_up();
-  } );
-}
+  void wifi_disconnected( const WiFiEventStationModeDisconnected& )
+  {
+    patterns.set( PATTERN_WIFI_DISCONNECTED );
+    Serial.println( F("WiFi disconnected") );
 
-void wifi_setup( )
-{
-  Serial.print( F("Wifi MAC: ") );
-  Serial.println(WiFi.macAddress().c_str());
+    schedule_function( []() {
+  #ifdef NODE_HAS_MQTT
+      mqtt_wifi_down();
+  #endif
+  #ifdef NODE_HAS_WEB
+      web_wifi_down();
+  #endif
 
-  WiFi.hostname( WIFI_HOSTNAME );
-  WiFi.persistent(false); // don't stash config in Flash
+      WifiObservers::wifi_down();
+    } );
+  }
 
-  static WiFiEventHandler d = WiFi.onStationModeDisconnected( wifi_disconnected );
-  static WiFiEventHandler c = WiFi.onStationModeConnected( wifi_connected );
-  static WiFiEventHandler g = WiFi.onStationModeGotIP( wifi_got_ip );
+  void wifi_connected( const WiFiEventStationModeConnected & )
+  {
+    patterns.set( PATTERN_WIFI_CONNECTED );
+    Serial.println( F("WiFi connected") );
+  }
 
-  Serial.println( F("Looking for WiFi...") );
+  void wifi_got_ip( const WiFiEventStationModeGotIP &e )
+  {
+    patterns.set( PATTERN_WIFI_GOT_IP );
+    Serial.print( F("WiFi got IP: ") );
+    Serial.println( e.ip );
 
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWD);
-    // it transpires that this will keep looking forever,
-    // _and_ try to reconnect if the connection is lost.
-}
+    schedule_function( []() {
+  #ifdef NODE_HAS_MQTT
+      mqtt_wifi_up();
+  #endif
+  #ifdef NODE_HAS_WEB
+      web_wifi_up();
+  #endif
 
-void wifi_loop( )
-{
-  ;
-}
+      WifiObservers::wifi_up();
+    } );
+  }
+};
+
+NodeWiFi wifi;
 
 // ----------------------------------------------------------------------------
 
@@ -571,7 +577,8 @@ void setup( )
   SetupAndLoopManager::add( patterns );
   patterns.set( PATTERN_WIFI_DISCONNECTED );
 
-  wifi_setup();
+  SetupAndLoopManager::add( wifi );
+
 #ifdef NODE_HAS_NTP
   SetupAndLoopManager::add( ntp );
 #endif
@@ -590,7 +597,6 @@ void loop( )
 {
   SetupAndLoopManager::exec();
 
-  //wifi_loop();
 #ifdef NODE_HAS_MQTT
   mqtt_loop();
 #endif
