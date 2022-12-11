@@ -171,8 +171,6 @@ private:
 
   void report( )
   {
-    Serial.print( F("Uptime: ") );
-
     const uint32_t uptime_secs = secs();
     const uint32_t uptime_mins = uptime_secs / 60;
     const uint32_t uptime_hours = uptime_mins / 60;
@@ -180,20 +178,21 @@ private:
 
     #define PLURAL(n) n, (n!=1)?"s":""
     if (uptime_days > 0)
-      Serial.printf( "%u day%s, ", PLURAL(uptime_days) ); // can't use F("")
+      log.debugf( "%u day%s, ", PLURAL(uptime_days) );
     if (uptime_hours > 0)
-      Serial.printf( "%u hour%s", PLURAL(uptime_hours % 24) );
+      log.debugf( "%u hour%s", PLURAL(uptime_hours % 24) );
     else if (uptime_mins > 0)
-      Serial.printf( "%u minute%s", PLURAL(uptime_mins) );
+      log.debugf( "%u minute%s", PLURAL(uptime_mins) );
     else
-      Serial.printf( "%u second%s", PLURAL(uptime_secs) );
+      log.debugf( "%u second%s", PLURAL(uptime_secs) );
     #undef PLURAL
-
-    Serial.println( "" );
   }
+
+  static Logger log;
 };
 
 Uptime uptime;
+Logger Uptime::log( "UPTIME" );
 
 // ----------------------------------------------------------------------------
 
@@ -220,13 +219,13 @@ public:
 
   virtual void wifi_down() // WifiObserver
   {
-    Serial.println( F("stopping WebServer") );
+    log.info( F("stopping") );
     server.end();
   }
 
   virtual void wifi_up() // WifiObserver
   {
-    Serial.println( F("starting WebServer") );
+    log.info( F("starting") );
     server.begin();
   }
 
@@ -283,9 +282,12 @@ private:
   {
     request->send( 404, "text/plain", "Not found" );
   }
+
+  static Logger log;
 };
 
 Webserver web;
+Logger Webserver::log( "WEB" );
 
 #endif
 
@@ -420,8 +422,7 @@ public:
   void setup()
   {
     report_ticker.attach_scheduled( 11, [this](){
-      Serial.print( F("NTP time: ") );
-      Serial.println( client.getFormattedTime() );
+      log.infof( "time: %s", client.getFormattedTime() );
     } );
 
     WifiObservers::add( this );
@@ -447,7 +448,7 @@ private:
 
   void refresh( int phase = 0 )
   {
-    Serial.println( F("NTP refresh") );
+    log.debug( F("refresh") );
 
     int wait;
     if (client.update())
@@ -463,9 +464,12 @@ private:
 
     refresh_ticker.once_scheduled( wait, [this, phase](){ refresh( phase ); } );
   }
+
+  static Logger log;
 };
 
 Ntp ntp;
+Logger Ntp::log( "NTP" );
 
 #endif
 
@@ -480,8 +484,7 @@ public:
 
   void setup()
   {
-    Serial.print( F("Wifi MAC: ") );
-    Serial.println(WiFi.macAddress().c_str());
+    log.infof( "MAC: %s", WiFi.macAddress().c_str() );
 
     WiFi.hostname( WIFI_HOSTNAME );
     WiFi.persistent(false); // don't stash config in Flash
@@ -490,7 +493,7 @@ public:
     handlers.push_back( WiFi.onStationModeConnected( [this](auto e){ wifi_connected(e); } ) );
     handlers.push_back( WiFi.onStationModeGotIP( [this](auto e){ wifi_got_ip(e); } ) );
 
-    Serial.println( F("Looking for WiFi...") );
+    log.info( F("inital connection...") );
     patterns.set( PATTERN_WIFI_DISCONNECTED );
 
     WiFi.mode( WIFI_STA );
@@ -509,7 +512,7 @@ private:
       return
 
     patterns.set( PATTERN_WIFI_DISCONNECTED );
-    Serial.println( F("WiFi disconnected") );
+    log.info( F("disconnected") );
     is_connected = false;
 
     schedule_function( []() { WifiObservers::wifi_down(); } );
@@ -518,21 +521,23 @@ private:
   void wifi_connected( const WiFiEventStationModeConnected & )
   {
     patterns.set( PATTERN_WIFI_CONNECTED );
-    Serial.println( F("WiFi connected") );
+    log.info( F("connected") );
     is_connected = true;
   }
 
   void wifi_got_ip( const WiFiEventStationModeGotIP &e )
   {
     patterns.set( PATTERN_WIFI_GOT_IP );
-    Serial.print( F("WiFi got IP: ") );
-    Serial.println( e.ip );
+    log.infof( "got IP: %s", e.ip.toString().c_str() );
 
     schedule_function( []() { WifiObservers::wifi_up(); } );
   }
+
+  static Logger log;
 };
 
 NodeWiFi wifi;
+Logger NodeWiFi::log( "WIFI" );
 
 // ----------------------------------------------------------------------------
 
@@ -631,6 +636,7 @@ void setup( )
 
 void loop( )
 {
+  static Logger log( "LOOP" );
   static long last = millis();
   static int loops = 0;
 
@@ -638,9 +644,7 @@ void loop( )
   long now = millis();
   if (now - last > LOOP_RATE_CHECK_INTERVAL_MS)
   {
-    Serial.print( F("Loop rate is about ") );
-    Serial.print( loops * 1000 / (now-last) );
-    Serial.println( F(" Hz") );
+    log.debugf( "loop rate is about %d Hz", loops * 1000 / (now-last) );
     loops = 0;
     last = now;
   }
