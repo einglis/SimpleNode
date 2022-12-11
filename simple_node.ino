@@ -271,7 +271,7 @@ private:
     request->send(200, "text/plain", "Hello, POST: " + message);
   }
 
-  #undef PARAM_MESSGE
+  #undef PARAM_MESSAGE
 
   void handle_not_found( AsyncWebServerRequest* request )
   {
