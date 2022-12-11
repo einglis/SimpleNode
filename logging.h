@@ -3,7 +3,7 @@
 class Logger
 {
 public:
-  Logger( const __FlashStringHelper* source )
+  Logger( const char* source )
     : src{ source }
     { }
   
@@ -27,7 +27,7 @@ public:
   #undef DEFINE_LOG_FNS
 
 private:
-  const __FlashStringHelper* src;
+  const char* src;
   char temp[ 128 ]; // deliberately short-ish; could probably be static...
 
   void log( const __FlashStringHelper* level_etc, const char* msg )
