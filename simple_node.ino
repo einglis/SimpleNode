@@ -207,9 +207,10 @@ public:
 
   void setup( )
   {
-    server.on("/", HTTP_GET, [this](auto r){ handle_default(r); } );
-    server.on("/get", HTTP_GET, [this](auto r){ handle_get_demo(r); } );
-    server.on("/post", HTTP_POST, [this](auto r){ handle_post_demo(r); } );
+    handlers.push_back( server.on("/", HTTP_GET, [this](auto r){ handle_default(r); } ) );
+    handlers.push_back( server.on("/get", HTTP_GET, [this](auto r){ handle_get_demo(r); } ) );
+    handlers.push_back( server.on("/post", HTTP_POST, [this](auto r){ handle_post_demo(r); } ) );
+
     server.onNotFound( [this](auto r){ handle_not_found(r); } );
 
     WifiObservers::add( this );
@@ -229,6 +230,9 @@ public:
 
 private:
   AsyncWebServer server;
+  std::vector< AsyncCallbackWebHandler > handlers;
+    // raw ptrs rather than shared mostly to cut down on syntactic noise
+    // but it's irrelevant anyway, since we never expect these to be deleted.
 
   // ----------------------------------
 
