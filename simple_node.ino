@@ -26,16 +26,22 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 #define WIFI_PASSWD PRIVATE_WIFI_PASSWD
 #define WIFI_HOSTNAME "simple_node_host"
 
+#define PATTERN_WIFI_DISCONNECTED 0xAAAAAAAA
+#define PATTERN_WIFI_CONNECTED    0xF0F0F0F0
+#define PATTERN_WIFI_GOT_IP       0xFFFFFFFE
+
+#define PIXELS_PIN 13 // 13: dev, 14: island
+#define NUMPIXELS 251 // deliberately stressful
+
 #define NTP_HOST "europe.pool.ntp.org"
 
 #define MQTT_HOST PRIVATE_MQTT_HOST
 #define MQTT_PORT 1883
 #define MQTT_CLIENT "simple_node_client"
-#define MQTT_KEEPALIVE  6  // timeout set to 1.5x this value
+#define MQTT_KEEPALIVE 60  // timeout set to 1.5x this value
 
-#define PATTERN_WIFI_DISCONNECTED 0xAAAAAAAA
-#define PATTERN_WIFI_CONNECTED    0xF0F0F0F0
-#define PATTERN_WIFI_GOT_IP       0xFFFFFFFE
+#define LOOP_RATE_CHECK_INTERVAL_MS 7000
+
 
 // ----------------------------------------------------------------------------
 
@@ -507,9 +513,6 @@ NodeWiFi wifi;
 
 #ifdef NODE_HAS_PIXELS
 
-#define PIXELS_PIN  13 // 13: dev, 14: island
-#define NUMPIXELS  251 // deliberately stressful
-
 class Pixels
 {
 public:
@@ -608,7 +611,7 @@ void loop( )
 
   loops++;
   long now = millis();
-  if (now - last > 1000)
+  if (now - last > LOOP_RATE_CHECK_INTERVAL_MS)
   {
     Serial.print( F("Loop rate is about ") );
     Serial.print( loops * 1000 / (now-last) );
