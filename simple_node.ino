@@ -40,8 +40,9 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 #define MQTT_CLIENT "simple_node_client"
 #define MQTT_KEEPALIVE 60  // timeout set to 1.5x this value
 
-#define LOOP_RATE_CHECK_INTERVAL_MS 7000
+#define WEBSERVER_PORT 80
 
+#define LOOP_RATE_CHECK_INTERVAL_MS 7000
 
 // ----------------------------------------------------------------------------
 
@@ -194,12 +195,45 @@ Uptime uptime;
 
 // ----------------------------------------------------------------------------
 
-AsyncWebServer web_server( 80 );
-const char* PARAM_MESSAGE = "message";
+#ifdef NODE_HAS_WEB
 
-void web_setup( )
+class Webserver
+  : public WifiObserver
 {
-  web_server.on("/", HTTP_GET, []( AsyncWebServerRequest* request ) {
+public:
+  Webserver()
+    : server( WEBSERVER_PORT/*lazy*/ )
+    { }
+
+  void setup( )
+  {
+    server.on("/", HTTP_GET, [this](auto r){ handle_default(r); } );
+    server.on("/get", HTTP_GET, [this](auto r){ handle_get_demo(r); } );
+    server.on("/post", HTTP_POST, [this](auto r){ handle_post_demo(r); } );
+    server.onNotFound( [this](auto r){ handle_not_found(r); } );
+
+    WifiObservers::add( this );
+  }
+
+  virtual void wifi_down() // WifiObserver
+  {
+    Serial.println( F("stopping WebServer") );
+    server.end();
+  }
+
+  virtual void wifi_up() // WifiObserver
+  {
+    Serial.println( F("starting WebServer") );
+    server.begin();
+  }
+
+private:
+  AsyncWebServer server;
+
+  // ----------------------------------
+
+  void handle_default( AsyncWebServerRequest* request )
+  {
     String message;
     message += "Build ";
     message += Version;
@@ -209,51 +243,46 @@ void web_setup( )
     message += " seconds\n";
 
     request->send(200, "text/plain", message);
-  } );
+  }
 
+  #define PARAM_MESSAGE "message"
+
+  void handle_get_demo( AsyncWebServerRequest* request )
+  {
     // Send a GET request to <IP>/get?message=<message>
-    web_server.on("/get", HTTP_GET, []( AsyncWebServerRequest* request ) {
-        String message;
-        if (request->hasParam(PARAM_MESSAGE)) {
-            message = request->getParam(PARAM_MESSAGE)->value();
-        } else {
-            message = "No message sent";
-        }
-        request->send(200, "text/plain", "Hello, GET: " + message);
-    } );
+    String message;
+    if (request->hasParam(PARAM_MESSAGE))
+      message = request->getParam(PARAM_MESSAGE)->value();
+    else
+      message = "No message sent";
 
+    request->send(200, "text/plain", "Hello, GET: " + message);
+  }
+
+  void handle_post_demo( AsyncWebServerRequest* request )
+  {
     // Send a POST request to <IP>/post with a form field message set to <message>
-    web_server.on("/post", HTTP_POST, []( AsyncWebServerRequest* request ) {
-        String message;
-        if (request->hasParam(PARAM_MESSAGE, true)) {
-            message = request->getParam(PARAM_MESSAGE, true)->value();
-        } else {
-            message = "No message sent";
-        }
-        request->send(200, "text/plain", "Hello, POST: " + message);
-    } );
+    String message;
+    if (request->hasParam(PARAM_MESSAGE, true/*is_post*/))
+        message = request->getParam(PARAM_MESSAGE, true)->value();
+    else
+        message = "No message sent";
 
-  web_server.onNotFound( []( AsyncWebServerRequest* request ) {
+    request->send(200, "text/plain", "Hello, POST: " + message);
+  }
+
+  #undef PARAM_MESSGE
+
+  void handle_not_found( AsyncWebServerRequest* request )
+  {
     request->send( 404, "text/plain", "Not found" );
-  } );
-}
+  }
+};
 
-void web_loop( )
-{
-  ;
-}
+Webserver web;
 
-void web_wifi_down( )
-{
-  Serial.println( F("stopping WebServer") );
-  web_server.end();
-}
+#endif
 
-void web_wifi_up( )
-{
-  Serial.println( F("starting WebServer") );
-  web_server.begin();
-}
 // ----------------------------------------------------------------------------
 
 #ifdef NODE_HAS_MQTT
@@ -475,13 +504,7 @@ private:
     Serial.println( F("WiFi disconnected") );
     is_connected = false;
 
-    schedule_function( []() {
-  #ifdef NODE_HAS_WEB
-      web_wifi_down();
-  #endif
-
-      WifiObservers::wifi_down();
-    } );
+    schedule_function( []() { WifiObservers::wifi_down(); } );
   }
 
   void wifi_connected( const WiFiEventStationModeConnected & )
@@ -497,13 +520,7 @@ private:
     Serial.print( F("WiFi got IP: ") );
     Serial.println( e.ip );
 
-    schedule_function( []() {
-  #ifdef NODE_HAS_WEB
-      web_wifi_up();
-  #endif
-
-      WifiObservers::wifi_up();
-    } );
+    schedule_function( []() { WifiObservers::wifi_up(); } );
   }
 };
 
@@ -600,7 +617,7 @@ void setup( )
   pixels.setup();
 #endif
 #ifdef NODE_HAS_WEB
-  web_setup();
+  web.setup();
 #endif
 }
 
@@ -621,8 +638,4 @@ void loop( )
   }
 
   Loopies::exec();
-
-#ifdef NODE_HAS_WEB
-  web_loop();
-#endif
 }
