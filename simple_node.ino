@@ -11,6 +11,8 @@
 #include "build.gen.h"
 const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
+#include "logging.h"
+
 // ----------------------------------------------------------------------------
 
 #define NODE_HAS_PIXELS
@@ -303,11 +305,11 @@ public:
   {
     const bool will_rc = client.will( "will_topic", "will_payload" );
     if (!will_rc)
-      Serial.println( F("MQTT: failed to set will") );
+      log.warning( F("failed to set will") );
 
     const bool keepalive_rc = client.setKeepAliveInterval( MQTT_KEEPALIVE * 1.5 );
     if (!keepalive_rc)
-      Serial.println( F("MQTT: failed to set keepalive") );
+      log.warning( F("failed to set keepalive") );
 
 
     auto sub = std::make_shared<Adafruit_MQTT_Subscribe>( &client, "node/cmd" );
@@ -315,7 +317,7 @@ public:
 
     const bool sub_rc = client.subscribe( sub.get() );
     if (!sub_rc)
-      Serial.println( F("MQTT: failed to subscribe to a topic") );
+      log.warning( F("failed to subscribe to a topic") );
     else
       subs.push_back( sub );
 
@@ -324,7 +326,7 @@ public:
 
   virtual void wifi_down( ) // WifiObserver
   {
-    Serial.println( F("MQTT: stopping") );
+    log.info( F("stopping") );
     client.disconnect();
 
     poll_ticker.detach();
@@ -333,7 +335,7 @@ public:
 
   virtual void wifi_up( ) // WifiObserver
   {
-    Serial.println( F("MQTT: starting") );
+    log.info( F("starting") );
     poll();
   }
 
@@ -346,21 +348,20 @@ private:
 
   static void test_callback( char *data, uint16_t len )
   {
-    Serial.print("MQTT: message... ");
-    Serial.println(data);
+    log.infof( "message of len %u: %s", len, data );
   }
 
   void mqtt_connected( )
   {
-    Serial.println( F("MQTT: connected") );
+    log.info( F("connected") );
     ping_ticker.attach_scheduled( MQTT_KEEPALIVE, [this]() {
-      Serial.println( F("MQTT: ping") );
+      log.debug( F("ping") );
       client.ping(); // can block for up to 500 ms.
     } );
   }
   void mqtt_disconnected( )
   {
-    Serial.println( F("MQTT: disconnected") );
+    log.info( F("disconnected") );
     ping_ticker.detach();
   }
 
@@ -380,7 +381,7 @@ private:
       if (was_connected)
         mqtt_disconnected();
 
-      Serial.println( F("MQTT: trying to connect") );
+      log.info( F("trying to connect") );
       if (client.connect() == 0) /* 0 == connected*/
       {
         mqtt_connected();
@@ -390,14 +391,17 @@ private:
       {
         // the first connection attempt invariably fails as the library
         // starts with a subcription sequence of zero, which is invalid.
-        Serial.println( F("MQTT: connect failed; will try again") );
+        log.info( F("connect failed; will try again") );
         poll_ticker.once_scheduled( 5, [this](){ poll( false ); } );
       }
     }
   }
+
+  static Logger log;
 };
 
 Mqtt mqtt;
+Logger Mqtt::log( "MQTT" );
 
 #endif
 
