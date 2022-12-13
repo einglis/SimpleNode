@@ -15,9 +15,9 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 // ----------------------------------------------------------------------------
 
-#define NODE_HAS_PIXELS
+#define NODE_HAS_PIXELS  // ~3 kHz cost
 #define NODE_HAS_NTP
-#define NODE_HAS_MQTT
+#define NODE_HAS_MQTT  // ~9 kHz cost
 #define NODE_HAS_WEB
 
 // ----------------------------------------------------------------------------
