@@ -49,13 +49,13 @@ public:
     , timer{ 0 }
     { }
 
-  enum Flags {
-      Press     =  1 << 31,
-      Final     =  1 << 30,
-      HoldShort =  1 << 29,
-      HoldLong  =  1 << 28,
-        // with 28 spare bits for the count, a mask
-        // seems a little unncessary...
+  enum Flags
+  {
+    Press     = 1 << 31,
+    HoldShort = 1 << 30,
+    HoldLong  = 1 << 29,
+    Final     = 1 << 28,
+    CountMask = (Final - 1)
   };
 
 private:
@@ -66,7 +66,6 @@ private:
       count++;
       event( Press );
     }
-
     timer = 0;
   }
   virtual void operator()( )
@@ -74,7 +73,7 @@ private:
     DebouncedInput::operator()( );
 
     if (timer < std::numeric_limits<decltype(timer)>::max()) timer++;
-      // don't overflow in case nothing happens for a while
+      // don't overflow even if nothing happens for a while
 
     if (state) // button is down
     {
@@ -95,7 +94,8 @@ private:
 
   void event( Flags f )
   {
-    const uint32_t e = f | count;
+    const uint32_t e = f | (count & CountMask);
+      // we'd have a _lot_ of presses before the masked count wraps
 
     switch (f) // temporary debug
     {
@@ -118,13 +118,13 @@ private:
 
   enum {
     debounce_ms = 30,
-    recent_press_ms = 300,
+    recent_press_ms = 400,
     short_hold_ms = 1500,
     long_hold_ms = 3000,
   };
 
   int count; // number of presses
-  int timer; // hold_time when button is down; recent_time when up
+  int timer; // aka hold_time when button is down; recent_time when up
 };
 
 // ----------------------------------------------------------------------------
@@ -133,34 +133,67 @@ class SwitchInput
   : public DebouncedInput
 {
 public:
-  SwitchInput( std::function<int()> input_fn, int max_flips )
+  SwitchInput( std::function<int()> input_fn )
     : DebouncedInput{ input_fn, debounce_ms }
     , count{ 0 }
-    , count_max{ max_flips }
-    , recent{ 0 }
+    , timer{ 0 }
     { }
+
+  enum Flags
+  {
+    FlipOpen  = 1 << 31,
+    FlipClose = 1 << 30,
+    Final     = 1 << 29,
+    CountMask = (Final - 1)
+  };
 
 private:
   virtual void new_state( )
   {
-    count = (recent) ? std::min(count + 1, count_max) : 1;
-    ;//log.debugf( "Switch flip %s (%d)", (state) ? "closed" : "open", count );
-    recent = recent_window_ms;
+    count++;
+    event( (state) ? FlipClose : FlipOpen );
+    timer = 0;
   }
   virtual void operator()( )
   {
     DebouncedInput::operator()( );
-    if (recent)
-      if (--recent == 0)
-        ;//log.debugf( "Switch final (%d)", count );
+
+    if (timer < std::numeric_limits<decltype(timer)>::max()) timer++;
+      // don't overflow even if nothing happens for a while
+
+    if (timer == recent_flip_ms)
+    {
+      event( Final );
+      count = 0;
+    }
+  }
+
+  void event( Flags f )
+  {
+    const uint32_t e = f | (count & CountMask);
+      // we'd have a _lot_ of flips before the masked count wraps
+
+    switch (f) // temporary debug
+    {
+        case FlipOpen:
+            Serial.printf( "Switch flip open (%d)\n", count );
+            break;
+        case FlipClose:
+            Serial.printf( "Switch flip close (%d)\n", count );
+            break;
+        case Final:
+            Serial.printf( "Switch final (%d)\n", count );
+            break;
+        default:
+            break; // most unexpected.
+    }
   }
 
   enum {
     debounce_ms = 50,
-    recent_window_ms = 400,
+    recent_flip_ms = 600,
   };
 
   int count;
-  const int count_max;
-  int recent;
+  int timer; // aka recent_time
 };
