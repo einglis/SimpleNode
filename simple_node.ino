@@ -613,7 +613,7 @@ Pixels pixels;
 
 #include "inputs.h"
 
-ButtonInput db( [](){ return !digitalRead(0); /*active low*/ }, 10 );
+ButtonInput db( [](){ return !digitalRead(0); /*active low*/ } );
 SwitchInput ds( [](){ return !digitalRead(12); /*active low*/ }, 6 );
 
 class Buttons
