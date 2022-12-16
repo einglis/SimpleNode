@@ -19,6 +19,7 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 #define NODE_HAS_NTP
 #define NODE_HAS_MQTT  // ~9 kHz cost
 #define NODE_HAS_WEB
+#define NODE_HAS_BUTTONS
 
 // ----------------------------------------------------------------------------
 
@@ -608,6 +609,46 @@ Pixels pixels;
 
 // ----------------------------------------------------------------------------
 
+#ifdef NODE_HAS_BUTTONS
+
+#include "inputs.h"
+
+ButtonInput db( [](){ return !digitalRead(0); /*active low*/ }, 10 );
+SwitchInput ds( [](){ return !digitalRead(12); /*active low*/ }, 6 );
+
+class Buttons
+{
+public:
+
+  void setup()
+  {
+    ticker.attach_ms( 1, Buttons::poll );
+    inputs.push_back(&db);
+    inputs.push_back(&ds);
+  }
+
+private:
+  Ticker ticker;
+
+  static void poll()
+  {
+    // called in SYS context, so be quick
+    for ( auto i : inputs )
+      i->operator()();
+  }
+
+  static std::vector< DebouncedInput* >inputs;
+  static Logger log;
+};
+
+Buttons buttons;
+std::vector< DebouncedInput* > Buttons::inputs;
+Logger Buttons::log( "BUTTONS" );
+
+#endif
+
+// ----------------------------------------------------------------------------
+
 void setup( )
 {
   Serial.begin(57600);
@@ -618,6 +659,11 @@ void setup( )
 
   uptime.setup();
   patterns.setup();
+
+#ifdef NODE_HAS_BUTTONS
+  buttons.setup();
+#endif
+
   wifi.setup();
 
 #ifdef NODE_HAS_NTP
