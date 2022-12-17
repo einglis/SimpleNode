@@ -622,9 +622,9 @@ public:
 
   void setup()
   {
-    ticker.attach_ms( 1, Buttons::poll );
-    inputs.push_back(&db);
-    inputs.push_back(&ds);
+    //ticker.attach_ms( 1, Buttons::poll );
+    //inputs.push_back(&db);
+    //inputs.push_back(&ds);
   }
 
 private:
@@ -702,11 +702,8 @@ void setup( )
   patterns.setup();
 
 #ifdef NODE_HAS_BUTTONS
-  buttons.setup();
-
-  db.event_fn( button_event );
-  ds.event_fn( switch_event );
-
+  ds.setup( switch_event );
+  db.setup( button_event );
 #endif
 
   wifi.setup();

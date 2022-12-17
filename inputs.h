@@ -47,13 +47,14 @@ public:
     : DebouncedInput{ input_fn, debounce_ms }
     , count{ 0 }
     , timer{ 0 }
-    , event{ [](auto f, auto c){ } }
     { }
 
   enum Event { Press = 1, HoldShort, HoldLong, Final };
-  void event_fn( std::function<void( Event, int )> fn )
+
+  void setup( std::function<void( Event, int )> fn )
   {
     event = fn;
+    ticker.attach_ms( 1, [this](){ operator()(); } );
   }
 
 private:
@@ -66,7 +67,7 @@ private:
 
   virtual void operator()( )
   {
-    DebouncedInput::operator()( );
+    DebouncedInput::operator()();
 
     if (timer < std::numeric_limits<decltype(timer)>::max()) timer++;
       // don't overflow even if nothing happens for a while
@@ -95,6 +96,7 @@ private:
     long_hold_ms = 3000,
   };
 
+  Ticker ticker;
   int count; // number of presses
   int timer; // aka hold_time when button is down; recent_time when up
   std::function< void( Event, int ) > event;
@@ -110,13 +112,14 @@ public:
     : DebouncedInput{ input_fn, debounce_ms }
     , count{ 0 }
     , timer{ 0 }
-    , event{ [](auto f, auto c){ } }
     { }
 
   enum Event{ FlipOpen = 1, FlipClose, Final };
-  void event_fn( std::function<void( Event, int )> fn )
+
+ void setup( std::function<void( Event, int )> fn )
   {
     event = fn;
+    ticker.attach_ms( 1, [this](){ operator()(); } );
   }
 
 private:
@@ -145,6 +148,7 @@ private:
     recent_flip_ms = 600,
   };
 
+  Ticker ticker;
   int count;
   int timer; // aka recent_time
   std::function< void( Event, int ) > event;
