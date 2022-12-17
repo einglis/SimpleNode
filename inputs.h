@@ -47,27 +47,23 @@ public:
     : DebouncedInput{ input_fn, debounce_ms }
     , count{ 0 }
     , timer{ 0 }
+    , event{ [](auto f, auto c){ } }
     { }
 
-  enum Flags
+  enum Event { Press = 1, HoldShort, HoldLong, Final };
+  void event_fn( std::function<void( Event, int )> fn )
   {
-    Press     = 1 << 31,
-    HoldShort = 1 << 30,
-    HoldLong  = 1 << 29,
-    Final     = 1 << 28,
-    CountMask = (Final - 1)
-  };
+    event = fn;
+  }
 
 private:
   virtual void new_state( ) 
   { 
     if (state) // button up -> down
-    {
-      count++;
-      event( Press );
-    }
+      event( Press, ++count );
     timer = 0;
   }
+
   virtual void operator()( )
   {
     DebouncedInput::operator()( );
@@ -78,41 +74,17 @@ private:
     if (state) // button is down
     {
       if (timer == short_hold_ms)
-        event( HoldShort );
+        event( HoldShort, count );
       else if (timer == long_hold_ms)
-        event( HoldLong );
+        event( HoldLong, count );
     }
     else // button is up
     {
       if (timer == recent_press_ms)
       {
-        event( Final );
+        event( Final, count );
         count = 0;
       }
-    }
-  }
-
-  void event( Flags f )
-  {
-    const uint32_t e = f | (count & CountMask);
-      // we'd have a _lot_ of presses before the masked count wraps
-
-    switch (f) // temporary debug
-    {
-        case Press:
-            Serial.printf( "Button press %d\n", count );
-            break;
-        case HoldShort:
-            Serial.printf( "Button hold short (%d)\n", count );
-            break;
-        case HoldLong:
-            Serial.printf( "Button hold long (%d)\n", count );
-            break;
-        case Final:
-            Serial.printf( "Button final (%d)\n", count );
-            break;
-        default:
-            break; // most unexpected.
     }
   }
 
@@ -125,6 +97,7 @@ private:
 
   int count; // number of presses
   int timer; // aka hold_time when button is down; recent_time when up
+  std::function< void( Event, int ) > event;
 };
 
 // ----------------------------------------------------------------------------
@@ -137,23 +110,22 @@ public:
     : DebouncedInput{ input_fn, debounce_ms }
     , count{ 0 }
     , timer{ 0 }
+    , event{ [](auto f, auto c){ } }
     { }
 
-  enum Flags
+  enum Event{ FlipOpen = 1, FlipClose, Final };
+  void event_fn( std::function<void( Event, int )> fn )
   {
-    FlipOpen  = 1 << 31,
-    FlipClose = 1 << 30,
-    Final     = 1 << 29,
-    CountMask = (Final - 1)
-  };
+    event = fn;
+  }
 
 private:
   virtual void new_state( )
   {
-    count++;
-    event( (state) ? FlipClose : FlipOpen );
+    event( (state) ? FlipClose : FlipOpen, ++count );
     timer = 0;
   }
+
   virtual void operator()( )
   {
     DebouncedInput::operator()( );
@@ -163,29 +135,8 @@ private:
 
     if (timer == recent_flip_ms)
     {
-      event( Final );
+      event( Final, count );
       count = 0;
-    }
-  }
-
-  void event( Flags f )
-  {
-    const uint32_t e = f | (count & CountMask);
-      // we'd have a _lot_ of flips before the masked count wraps
-
-    switch (f) // temporary debug
-    {
-        case FlipOpen:
-            Serial.printf( "Switch flip open (%d)\n", count );
-            break;
-        case FlipClose:
-            Serial.printf( "Switch flip close (%d)\n", count );
-            break;
-        case Final:
-            Serial.printf( "Switch final (%d)\n", count );
-            break;
-        default:
-            break; // most unexpected.
     }
   }
 
@@ -196,4 +147,5 @@ private:
 
   int count;
   int timer; // aka recent_time
+  std::function< void( Event, int ) > event;
 };

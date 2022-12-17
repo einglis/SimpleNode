@@ -645,6 +645,47 @@ Buttons buttons;
 std::vector< DebouncedInput* > Buttons::inputs;
 Logger Buttons::log( "BUTTONS" );
 
+
+void button_event( ButtonInput::Event f, int count ) // called in SYS context
+{
+  switch (f)
+  {
+      case ButtonInput::Press:
+          Serial.printf( "Button press %d\n", count );
+          break;
+      case ButtonInput::HoldShort:
+          Serial.printf( "Button hold short (%d)\n", count );
+          break;
+      case ButtonInput::HoldLong:
+          Serial.printf( "Button hold long (%d)\n", count );
+          break;
+      case ButtonInput::Final:
+          Serial.printf( "Button final (%d)\n", count );
+          break;
+      default:
+          break; // most unexpected.
+  }
+}
+void switch_event( SwitchInput::Event f, int count ) // called in SYS context
+{
+  switch (f)
+  {
+      case SwitchInput::FlipOpen:
+          Serial.printf( "Switch flip open (%d)\n", count );
+          break;
+      case SwitchInput::FlipClose:
+          Serial.printf( "Switch flip close (%d)\n", count );
+          break;
+      case SwitchInput::Final:
+          Serial.printf( "Switch final (%d)\n", count );
+          break;
+      default:
+          break; // most unexpected.
+  }
+}
+
+
+
 #endif
 
 // ----------------------------------------------------------------------------
@@ -662,6 +703,10 @@ void setup( )
 
 #ifdef NODE_HAS_BUTTONS
   buttons.setup();
+
+  db.event_fn( button_event );
+  ds.event_fn( switch_event );
+
 #endif
 
   wifi.setup();
