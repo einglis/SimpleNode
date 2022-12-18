@@ -620,8 +620,9 @@ Logger input_log( "INPUTS" );
 
 void button_event( ButtonInput::Event f, int count ) // called in SYS context
 {
-  switch (f)
-  {
+  schedule_function( [=]() {
+    switch (f)
+    {
       case ButtonInput::Press:
           input_log.infof( "Button press %d", count );
           break;
@@ -636,12 +637,14 @@ void button_event( ButtonInput::Event f, int count ) // called in SYS context
           break;
       default:
           break; // most unexpected.
-  }
+    }
+  } );
 }
 void switch_event( SwitchInput::Event f, int count ) // called in SYS context
 {
-  switch (f)
-  {
+  schedule_function( [=]() {
+    switch (f)
+    {
       case SwitchInput::FlipOpen:
           input_log.infof( "Switch flip open (%d)", count );
           break;
@@ -653,7 +656,8 @@ void switch_event( SwitchInput::Event f, int count ) // called in SYS context
           break;
       default:
           break; // most unexpected.
-  }
+    }
+  } );
 }
 
 #endif
