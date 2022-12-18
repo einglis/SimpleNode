@@ -219,13 +219,13 @@ public:
 
   void setup( )
   {
-    handlers.push_back( server.on("/", HTTP_GET, [this](auto r){ handle_default(r); } ) );
-    handlers.push_back( server.on("/get", HTTP_GET, [this](auto r){ handle_get_demo(r); } ) );
-    handlers.push_back( server.on("/post", HTTP_POST, [this](auto r){ handle_post_demo(r); } ) );
-
-    server.onNotFound( [this](auto r){ handle_not_found(r); } );
-
+    server.onNotFound( [](auto request) { request->send( 404, "text/plain", "Not found" ); } );
     WifiObservers::add( this );
+  }
+
+  void add_handler( const char* uri, WebRequestMethod method, std::function< void(AsyncWebServerRequest*) > fn )
+  {
+    handlers.push_back( server.on( uri, method, fn ) );
   }
 
   virtual void wifi_down() // WifiObserver
@@ -245,54 +245,6 @@ private:
   std::vector< AsyncCallbackWebHandler > handlers;
     // raw ptrs rather than shared mostly to cut down on syntactic noise
     // but it's irrelevant anyway, since we never expect these to be deleted.
-
-  // ----------------------------------
-
-  void handle_default( AsyncWebServerRequest* request )
-  {
-    String message;
-    message += "Build ";
-    message += Version;
-    message += "\n";
-    message += "Uptime ";
-    message += uptime.secs();
-    message += " seconds\n";
-
-    request->send(200, "text/plain", message);
-  }
-
-  #define PARAM_MESSAGE "message"
-
-  void handle_get_demo( AsyncWebServerRequest* request )
-  {
-    // Send a GET request to <IP>/get?message=<message>
-    String message;
-    if (request->hasParam(PARAM_MESSAGE))
-      message = request->getParam(PARAM_MESSAGE)->value();
-    else
-      message = "No message sent";
-
-    request->send(200, "text/plain", "Hello, GET: " + message);
-  }
-
-  void handle_post_demo( AsyncWebServerRequest* request )
-  {
-    // Send a POST request to <IP>/post with a form field message set to <message>
-    String message;
-    if (request->hasParam(PARAM_MESSAGE, true/*is_post*/))
-        message = request->getParam(PARAM_MESSAGE, true)->value();
-    else
-        message = "No message sent";
-
-    request->send(200, "text/plain", "Hello, POST: " + message);
-  }
-
-  #undef PARAM_MESSAGE
-
-  void handle_not_found( AsyncWebServerRequest* request )
-  {
-    request->send( 404, "text/plain", "Not found" );
-  }
 
   static Logger log;
 };
@@ -701,6 +653,7 @@ void setup( )
 #endif
 #ifdef NODE_HAS_WEB
   web.setup();
+  register_web_pages( web );
 #endif
 }
 
