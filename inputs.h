@@ -90,7 +90,7 @@ private:
   }
 
   enum {
-    debounce_ms = 30,
+    debounce_ms = 20,
     recent_press_ms = 400,
     short_hold_ms = 1500,
     long_hold_ms = 3000,
@@ -144,7 +144,7 @@ private:
   }
 
   enum {
-    debounce_ms = 50,
+    debounce_ms = 20,
     recent_flip_ms = 600,
   };
 
