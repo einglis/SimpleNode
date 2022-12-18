@@ -23,6 +23,12 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 // ----------------------------------------------------------------------------
 
+#ifdef NODE_HAS_INPUTS
+#include "inputs.h"
+#endif
+
+// ----------------------------------------------------------------------------
+
 #include "private_config.h" // not in repo...
 
 #define WIFI_SSID PRIVATE_WIFI_SSID
@@ -460,7 +466,7 @@ private:
     else
     {
       wait = 1 << phase; // 1, 2, 4,... seconds
-      phase = min( ++phase, 5 ); // 1 << 5 == 32 seconds
+      phase = min( phase + 1, 5 ); // 1 << 5 == 32 seconds
     }
 
     refresh_ticker.once_scheduled( wait, [this, phase](){ refresh( phase ); } );
@@ -610,8 +616,6 @@ Pixels pixels;
 // ----------------------------------------------------------------------------
 
 #ifdef NODE_HAS_INPUTS
-
-#include "inputs.h"
 
 ButtonInput db( [](){ return !digitalRead(0); /*active low*/ } );
 SwitchInput ds( [](){ return !digitalRead(12); /*active low*/ } );
