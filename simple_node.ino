@@ -19,7 +19,7 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 #define NODE_HAS_NTP
 #define NODE_HAS_MQTT  // ~9 kHz cost
 #define NODE_HAS_WEB
-#define NODE_HAS_BUTTONS
+#define NODE_HAS_INPUTS
 
 // ----------------------------------------------------------------------------
 
@@ -609,58 +609,30 @@ Pixels pixels;
 
 // ----------------------------------------------------------------------------
 
-#ifdef NODE_HAS_BUTTONS
+#ifdef NODE_HAS_INPUTS
 
 #include "inputs.h"
 
 ButtonInput db( [](){ return !digitalRead(0); /*active low*/ } );
 SwitchInput ds( [](){ return !digitalRead(12); /*active low*/ } );
 
-class Buttons
-{
-public:
-
-  void setup()
-  {
-    //ticker.attach_ms( 1, Buttons::poll );
-    //inputs.push_back(&db);
-    //inputs.push_back(&ds);
-  }
-
-private:
-  Ticker ticker;
-
-  static void poll()
-  {
-    // called in SYS context, so be quick
-    for ( auto i : inputs )
-      i->operator()();
-  }
-
-  static std::vector< DebouncedInput* >inputs;
-  static Logger log;
-};
-
-Buttons buttons;
-std::vector< DebouncedInput* > Buttons::inputs;
-Logger Buttons::log( "BUTTONS" );
-
+Logger input_log( "INPUTS" );
 
 void button_event( ButtonInput::Event f, int count ) // called in SYS context
 {
   switch (f)
   {
       case ButtonInput::Press:
-          Serial.printf( "Button press %d\n", count );
+          input_log.infof( "Button press %d", count );
           break;
       case ButtonInput::HoldShort:
-          Serial.printf( "Button hold short (%d)\n", count );
+          input_log.infof( "Button hold short (%d)", count );
           break;
       case ButtonInput::HoldLong:
-          Serial.printf( "Button hold long (%d)\n", count );
+          input_log.infof( "Button hold long (%d)", count );
           break;
       case ButtonInput::Final:
-          Serial.printf( "Button final (%d)\n", count );
+          input_log.infof( "Button final (%d)", count );
           break;
       default:
           break; // most unexpected.
@@ -671,20 +643,18 @@ void switch_event( SwitchInput::Event f, int count ) // called in SYS context
   switch (f)
   {
       case SwitchInput::FlipOpen:
-          Serial.printf( "Switch flip open (%d)\n", count );
+          input_log.infof( "Switch flip open (%d)", count );
           break;
       case SwitchInput::FlipClose:
-          Serial.printf( "Switch flip close (%d)\n", count );
+          input_log.infof( "Switch flip close (%d)", count );
           break;
       case SwitchInput::Final:
-          Serial.printf( "Switch final (%d)\n", count );
+          input_log.infof( "Switch final (%d)", count );
           break;
       default:
           break; // most unexpected.
   }
 }
-
-
 
 #endif
 
@@ -701,7 +671,7 @@ void setup( )
   uptime.setup();
   patterns.setup();
 
-#ifdef NODE_HAS_BUTTONS
+#ifdef NODE_HAS_INPUTS
   ds.setup( switch_event );
   db.setup( button_event );
 #endif

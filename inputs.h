@@ -3,20 +3,22 @@
 class DebouncedInput
 {
 public:
-    DebouncedInput( std::function<int()> input_fn_, int debounce_ms )
+  virtual ~DebouncedInput( ) { }
+
+protected:
+  DebouncedInput( std::function<int()> input_fn_, int debounce_ms )
     : state{ 0 }
     , count{ 0 }
     , max_count{ debounce_ms }
     , input_fn{ input_fn_ }
     { }
-  virtual ~DebouncedInput( ) { }
 
-  virtual void setup()
+  void setup()
   {
-    ticker.attach_ms( 1, [this](){ operator()(); } );
+    ticker.attach_ms( 1, [this](){ poll(); } );
   }
 
-  virtual void operator()( )
+  virtual void poll( )
   {
     const int in = input_fn();
     if (in && count < max_count)
@@ -32,7 +34,6 @@ public:
     }
   }
 
-protected:
   int state;
   virtual void new_state( ) = 0; 
 
@@ -71,9 +72,9 @@ private:
     timer = 0;
   }
 
-  virtual void operator()( )
+  virtual void poll( )
   {
-    DebouncedInput::operator()();
+    DebouncedInput::poll();
 
     if (timer < std::numeric_limits<decltype(timer)>::max()) timer++;
       // don't overflow even if nothing happens for a while
@@ -134,9 +135,9 @@ private:
     timer = 0;
   }
 
-  virtual void operator()( )
+  virtual void poll( )
   {
-    DebouncedInput::operator()( );
+    DebouncedInput::poll( );
 
     if (timer < std::numeric_limits<decltype(timer)>::max()) timer++;
       // don't overflow even if nothing happens for a while
