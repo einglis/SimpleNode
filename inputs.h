@@ -11,6 +11,11 @@ public:
     { }
   virtual ~DebouncedInput( ) { }
 
+  virtual void setup()
+  {
+    ticker.attach_ms( 1, [this](){ operator()(); } );
+  }
+
   virtual void operator()( )
   {
     const int in = input_fn();
@@ -35,6 +40,7 @@ private:
   int count;
   const int max_count;
   std::function<int()> input_fn;
+  Ticker ticker;
 };
 
 // ----------------------------------------------------------------------------
@@ -54,7 +60,7 @@ public:
   void setup( std::function<void( Event, int )> fn )
   {
     event = fn;
-    ticker.attach_ms( 1, [this](){ operator()(); } );
+    DebouncedInput::setup();
   }
 
 private:
@@ -96,7 +102,6 @@ private:
     long_hold_ms = 3000,
   };
 
-  Ticker ticker;
   int count; // number of presses
   int timer; // aka hold_time when button is down; recent_time when up
   std::function< void( Event, int ) > event;
@@ -119,7 +124,7 @@ public:
  void setup( std::function<void( Event, int )> fn )
   {
     event = fn;
-    ticker.attach_ms( 1, [this](){ operator()(); } );
+    DebouncedInput::setup();
   }
 
 private:
@@ -148,7 +153,6 @@ private:
     recent_flip_ms = 600,
   };
 
-  Ticker ticker;
   int count;
   int timer; // aka recent_time
   std::function< void( Event, int ) > event;
