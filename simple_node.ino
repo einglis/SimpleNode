@@ -27,6 +27,10 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 #include "inputs.h"
 #endif
 
+// forward declarations to protect against Arduino's odd choices about where to add
+// its own function prototypes, which are invariably before the actual declarations.
+class Webserver;
+
 // ----------------------------------------------------------------------------
 
 #include "private_config.h" // not in repo...
