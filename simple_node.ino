@@ -15,12 +15,7 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 // ----------------------------------------------------------------------------
 
-#define NODE_HAS_PIXELS  // ~3 kHz cost
-#define NODE_HAS_NTP
-#define NODE_HAS_MQTT  // ~9 kHz cost
-#define NODE_HAS_WEB
-#define NODE_HAS_WEB_UPDATE
-#define NODE_HAS_INPUTS
+#include "app_config.h"
 
 // ----------------------------------------------------------------------------
 
@@ -28,35 +23,11 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 #include "inputs.h"
 #endif
 
+#ifdef NODE_HAS_WEB
 // forward declarations to protect against Arduino's odd choices about where to add
 // its own function prototypes, which are invariably before the actual declarations.
 class Webserver;
-
-// ----------------------------------------------------------------------------
-
-#include "private_config.h" // not in repo...
-
-#define WIFI_SSID PRIVATE_WIFI_SSID
-#define WIFI_PASSWD PRIVATE_WIFI_PASSWD
-#define WIFI_HOSTNAME "simple_node_host"
-
-#define PATTERN_WIFI_DISCONNECTED 0xAAAAAAAA
-#define PATTERN_WIFI_CONNECTED    0xF0F0F0F0
-#define PATTERN_WIFI_GOT_IP       0xFFFFFFFE
-
-#define PIXELS_PIN 13 // 13: dev, 14: island
-#define NUMPIXELS 251 // deliberately stressful
-
-#define NTP_HOST "europe.pool.ntp.org"
-
-#define MQTT_HOST PRIVATE_MQTT_HOST
-#define MQTT_PORT 1883
-#define MQTT_CLIENT "simple_node_client"
-#define MQTT_KEEPALIVE 60  // timeout set to 1.5x this value
-
-#define WEBSERVER_PORT 80
-
-#define LOOP_RATE_CHECK_INTERVAL_MS 7000
+#endif
 
 // ----------------------------------------------------------------------------
 
