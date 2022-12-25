@@ -285,7 +285,8 @@ private:
 
   static void test_callback( char *data, uint16_t len )
   {
-    log.infof( "message of len %u: %s", len, data );
+    //log.infof( "message of len %u: %s", len, data );
+    app_mqtt_message( data, (int)len );
   }
 
   void mqtt_connected( )
@@ -484,7 +485,7 @@ public:
   Pixels( int num_pixels = NUMPIXELS, int pin = PIXELS_PIN ) // lazy
     : pixels( num_pixels, pin, NEO_GRB + NEO_KHZ800 )
     , work_phase{ 0 }
-    , pattern_phase{ 0 }
+    , need_update{ false }
     { }
 
   void setup()
@@ -498,32 +499,7 @@ public:
     ticker.attach( 0.1, [this](){ update(); } );
   }
 
-private:
-  Adafruit_NeoPixel pixels;
-  Ticker ticker;
-  int work_phase;
-  uint8_t pattern_phase;
-
-  void update( )
-  {
-    // called in SYS context, so be quick
-
-    if (work_phase == 0)
-    {
-      pattern_phase++; // happy to overflow and loop
-
-      for (int i = 0; i < pixels.numPixels(); i++)
-          pixels.setPixelColor( i, Wheel( pattern_phase ) );
-    }
-    else
-    {
-      pixels.show();
-    }
-
-    work_phase = !work_phase;
-  }
-
-  uint32_t Wheel(byte WheelPos)
+  static uint32_t Wheel(byte WheelPos)
   {
     if(WheelPos < 85) {
       return Adafruit_NeoPixel::Color(WheelPos * 3, 255 - WheelPos * 3, 0);
@@ -535,6 +511,31 @@ private:
       return Adafruit_NeoPixel::Color(0, WheelPos * 3, 255 - WheelPos * 3);
     }
   }
+
+private:
+  Adafruit_NeoPixel pixels;
+  Ticker ticker;
+  int work_phase;
+  bool need_update;
+
+  void update( )
+  {
+    // called in SYS context, so be quick
+
+    if (work_phase == 0)
+    {
+      need_update = app_pixels_update( pixels.numPixels(),
+        [this](uint16_t n, uint32_t c){ pixels.setPixelColor( n, c ); } );
+    }
+    else
+    {
+      if (need_update)
+        pixels.show();
+    }
+
+    work_phase = !work_phase;
+  }
+
 };
 
 Pixels pixels;
