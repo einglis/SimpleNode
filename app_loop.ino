@@ -153,8 +153,6 @@ class RainbowPattern : public Pattern
     RainbowPattern() : j( 0 ) {}
     virtual void advance() { j += pattern_phase_inc; }
     virtual uint32_t pixel( unsigned int i ) { return Pixels::rgb_wheel((i+j) & 255); }
-    virtual void activate() { Serial.println("Rainbow activate"); }
-    virtual void deactivate() { Serial.println("Rainbow deactivate"); }
   private:
     unsigned int j;
 };
@@ -165,10 +163,20 @@ class RandomPattern : public Pattern
   public:
     virtual void advance() { }
     virtual uint32_t pixel( unsigned int ) { return Pixels::rgb_wheel(rand()); }
-    virtual void activate() { Serial.println("Random activate"); }
-    virtual void deactivate() { Serial.println("Random deactivate"); }
 };
 RandomPattern r2;
+
+class SparklePattern : public Pattern
+{
+  public:
+    virtual void advance() { }
+    virtual uint32_t pixel( unsigned int )
+    {
+      const uint8_t k = Adafruit_NeoPixel::gamma8(rand());
+      return (uint32_t)k * 0x01010101;
+    }
+};
+SparklePattern s1;
 
 class TimedPattern : public Pattern
 {
@@ -249,5 +257,6 @@ void app_setup( )
 
   pixel_patterns.push_back( &r1 );
   pixel_patterns.push_back( &r2 );
+  pixel_patterns.push_back( &s1 );
   pixel_patterns.push_back( &t1 );
 }
