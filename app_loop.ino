@@ -57,37 +57,8 @@ void new_power( bool pwr )
 static int curr_pattern = 0;
 static int prev_pattern = curr_pattern;
 
-class PixelPattern
-{
-public:
-  virtual void advance() = 0;
-  virtual uint32_t pixel( unsigned int i ) = 0;
-  virtual void activate() { }
-  virtual void deactivate() { }
-  virtual ~PixelPattern() = 0;
+#include "pixel_pattern.h"
 
-protected:
-  static uint8_t gamma( uint8_t x ) { return Adafruit_NeoPixel::gamma8(x); }
-
-  static uint32_t rgb_wheel( uint8_t p )
-  {
-    if (p < 85)
-    {
-      return Adafruit_NeoPixel::Color(p * 3, 255 - p * 3, 0);
-    }
-    else if(p < 170)
-    {
-      p -= 85;
-      return Adafruit_NeoPixel::Color(255 - p * 3, 0, p * 3);
-    }
-    else
-    {
-      p -= 170;
-      return Adafruit_NeoPixel::Color(0, p * 3, 255 - p * 3);
-    }
-  }
-
-};
 PixelPattern::~PixelPattern() {} // pure virtual destructor.
 static std::vector< PixelPattern* >pixel_patterns;
 
@@ -169,56 +140,17 @@ void app_mqtt_message( const char* data, int len )
 
 
 
-class RainbowPattern : public PixelPattern
-{
-  public:
-    RainbowPattern() : j( 0 ) {}
-    virtual void advance() { j += pattern_phase_inc; }
-    virtual uint32_t pixel( unsigned int i ) { return rgb_wheel((i+j) & 255); }
-  private:
-    unsigned int j;
-};
+#include "pixel_patterns/rainbow.h"
 RainbowPattern r1;
 
-class RandomPattern : public PixelPattern
-{
-  public:
-    virtual void advance() { }
-    virtual uint32_t pixel( unsigned int ) { return rgb_wheel(rand()); }
-};
-RandomPattern r2;
+#include "pixel_patterns/colour_random.h"
+ColourRandomPattern r2;
 
-class SparklePattern : public PixelPattern
-{
-  public:
-    virtual void advance() { }
-    virtual uint32_t pixel( unsigned int )
-    {
-      const uint8_t k = gamma(rand());
-      return (uint32_t)k * 0x01010101;
-    }
-};
+#include "pixel_patterns/sparkle.h"
 SparklePattern s1;
+SparklePattern s2( 0x010000 ); // red sparkles
 
-class TimedPattern : public PixelPattern
-{
-  public:
-    virtual void advance() { }
-    virtual uint32_t pixel( unsigned int ) { return col; }
-    virtual void activate()
-    {
-      Serial.println("Timed activate");
-      ticker.attach_scheduled(1, [this](){ col = rgb_wheel(rand()); } );
-    }
-    virtual void deactivate()
-    {
-      Serial.println("Timed deactivate");
-      ticker.detach();
-    }
-  private:
-    Ticker ticker;
-    uint32_t col;
-};
+#include "pixel_patterns/timed.h"
 TimedPattern t1;
 
 
@@ -251,8 +183,8 @@ bool app_pixels_update( uint16_t num_pixels, std::function< void(uint16_t n, uin
   {
       if (pattern && pattern_outgoing)
       {
-          pattern->advance();
-          pattern_outgoing->advance();
+          pattern->advance( pattern_phase_inc );
+          pattern_outgoing->advance( pattern_phase_inc );
           for (auto i = 0; i < num_pixels; i++)
               pixel( i, mix(pattern_outgoing->pixel(i),pattern->pixel(i),transition_count) );
       }
@@ -261,7 +193,7 @@ bool app_pixels_update( uint16_t num_pixels, std::function< void(uint16_t n, uin
   {
       if (pattern)
       {
-          pattern->advance();
+          pattern->advance( pattern_phase_inc );
           for (auto i = 0; i < num_pixels; i++)
               pixel( i, pattern->pixel(i) );
       }
@@ -280,5 +212,6 @@ void app_setup( )
   pixel_patterns.push_back( &r1 );
   pixel_patterns.push_back( &r2 );
   pixel_patterns.push_back( &s1 );
+  pixel_patterns.push_back( &s2 );
   pixel_patterns.push_back( &t1 );
 }
