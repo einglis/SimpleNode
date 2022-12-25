@@ -58,8 +58,8 @@ static int curr_pattern = 0;
 static int prev_pattern = curr_pattern;
 
 #include "pixel_pattern.h"
-
 PixelPattern::~PixelPattern() {} // pure virtual destructor.
+
 static std::vector< PixelPattern* >pixel_patterns;
 
 static int transition_count = 0;
@@ -140,18 +140,7 @@ void app_mqtt_message( const char* data, int len )
 
 
 
-#include "pixel_patterns/rainbow.h"
-RainbowPattern r1;
 
-#include "pixel_patterns/colour_random.h"
-ColourRandomPattern r2;
-
-#include "pixel_patterns/sparkle.h"
-SparklePattern s1;
-SparklePattern s2( 0x010000 ); // red sparkles
-
-#include "pixel_patterns/timed.h"
-TimedPattern t1;
 
 
 uint32_t mix( uint32_t a, uint32_t b, unsigned int amnt)
@@ -204,14 +193,29 @@ bool app_pixels_update( uint16_t num_pixels, std::function< void(uint16_t n, uin
 
 // ----------------------------------------------------------------------------
 
+namespace {
+
+#include "pixel_patterns/rainbow.h"
+RainbowPattern rainbow;
+
+#include "pixel_patterns/colour_random.h"
+ColourRandomPattern random_colours;
+
+#include "pixel_patterns/sparkle.h"
+SparklePattern sparkle_white;
+SparklePattern sparkle_red( 0x010000 );
+SparklePattern sparkle_yellow( 0x010100 );
+
+}
+
 void app_setup( )
 {
   pinMode( POWER_PIN, OUTPUT );
   power_off();
 
-  pixel_patterns.push_back( &r1 );
-  pixel_patterns.push_back( &r2 );
-  pixel_patterns.push_back( &s1 );
-  pixel_patterns.push_back( &s2 );
-  pixel_patterns.push_back( &t1 );
+  pixel_patterns.push_back( &rainbow );
+  pixel_patterns.push_back( &random_colours );
+  pixel_patterns.push_back( &sparkle_white );
+  pixel_patterns.push_back( &sparkle_red );
+  pixel_patterns.push_back( &sparkle_yellow );
 }
