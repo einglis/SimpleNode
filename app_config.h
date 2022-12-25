@@ -31,6 +31,8 @@
 #define MQTT_PORT 1883
 #define MQTT_CLIENT "simple_node_client"
 #define MQTT_KEEPALIVE 60  // timeout set to 1.5x this value
+#define MQTT_SUB_TOPIC "simple/cmd"
+#define MQTT_PUB_TOPIC "simple/status"
 
 #define WEBSERVER_PORT 80
 

@@ -249,7 +249,7 @@ public:
       log.warning( F("failed to set keepalive") );
 
 
-    auto sub = std::make_shared<Adafruit_MQTT_Subscribe>( &client, "node/cmd" );
+    auto sub = std::make_shared<Adafruit_MQTT_Subscribe>( &client, MQTT_SUB_TOPIC );
     sub->setCallback( test_callback );
 
     const bool sub_rc = client.subscribe( sub.get() );
