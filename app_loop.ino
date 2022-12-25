@@ -59,12 +59,34 @@ static int prev_pattern = curr_pattern;
 
 class Pattern
 {
-  public:
-    virtual void advance() = 0;
-    virtual uint32_t pixel( unsigned int i ) = 0;
-    virtual void activate() { }
-    virtual void deactivate() { }
-    virtual ~Pattern() = 0;
+public:
+  virtual void advance() = 0;
+  virtual uint32_t pixel( unsigned int i ) = 0;
+  virtual void activate() { }
+  virtual void deactivate() { }
+  virtual ~Pattern() = 0;
+
+protected:
+  static uint8_t gamma( uint8_t x ) { return Adafruit_NeoPixel::gamma8(x); }
+
+  static uint32_t rgb_wheel( uint8_t p )
+  {
+    if (p < 85)
+    {
+      return Adafruit_NeoPixel::Color(p * 3, 255 - p * 3, 0);
+    }
+    else if(p < 170)
+    {
+      p -= 85;
+      return Adafruit_NeoPixel::Color(255 - p * 3, 0, p * 3);
+    }
+    else
+    {
+      p -= 170;
+      return Adafruit_NeoPixel::Color(0, p * 3, 255 - p * 3);
+    }
+  }
+
 };
 Pattern::~Pattern() {} // pure virtual destructor.
 static std::vector< Pattern* >pixel_patterns;
@@ -152,7 +174,7 @@ class RainbowPattern : public Pattern
   public:
     RainbowPattern() : j( 0 ) {}
     virtual void advance() { j += pattern_phase_inc; }
-    virtual uint32_t pixel( unsigned int i ) { return Pixels::rgb_wheel((i+j) & 255); }
+    virtual uint32_t pixel( unsigned int i ) { return rgb_wheel((i+j) & 255); }
   private:
     unsigned int j;
 };
@@ -162,7 +184,7 @@ class RandomPattern : public Pattern
 {
   public:
     virtual void advance() { }
-    virtual uint32_t pixel( unsigned int ) { return Pixels::rgb_wheel(rand()); }
+    virtual uint32_t pixel( unsigned int ) { return rgb_wheel(rand()); }
 };
 RandomPattern r2;
 
@@ -172,7 +194,7 @@ class SparklePattern : public Pattern
     virtual void advance() { }
     virtual uint32_t pixel( unsigned int )
     {
-      const uint8_t k = Adafruit_NeoPixel::gamma8(rand());
+      const uint8_t k = gamma(rand());
       return (uint32_t)k * 0x01010101;
     }
 };
@@ -186,7 +208,7 @@ class TimedPattern : public Pattern
     virtual void activate()
     {
       Serial.println("Timed activate");
-      ticker.attach_scheduled(1, [this](){ col = Pixels::rgb_wheel(rand()); } );
+      ticker.attach_scheduled(1, [this](){ col = rgb_wheel(rand()); } );
     }
     virtual void deactivate()
     {

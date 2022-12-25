@@ -504,24 +504,6 @@ public:
     pixels.setBrightness( b );
   }
 
-  static uint32_t rgb_wheel( uint8_t p )
-  {
-    if (p < 85)
-    {
-      return Adafruit_NeoPixel::Color(p * 3, 255 - p * 3, 0);
-    }
-    else if(p < 170)
-    {
-      p -= 85;
-      return Adafruit_NeoPixel::Color(255 - p * 3, 0, p * 3);
-    }
-    else
-    {
-      p -= 170;
-      return Adafruit_NeoPixel::Color(0, p * 3, 255 - p * 3);
-    }
-  }
-
 private:
   Adafruit_NeoPixel pixels;
   Ticker ticker;
