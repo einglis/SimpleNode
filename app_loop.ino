@@ -74,13 +74,13 @@ Ticker transition_ticker;
 
 void new_pattern( int next_pattern )
 {
-  if (pattern >= (int)pixel_patterns.size())
+  if (next_pattern >= (int)pixel_patterns.size())
   {
-    app_log.warningf( "unknown pattern %d", pattern );
+    app_log.warningf( "unknown pattern %d", next_pattern );
     return;
   }
 
-  transition_ticker.attach_ms_scheduled( 10, []() {
+  transition_ticker.attach_ms_scheduled( 10, [next_pattern]() {
     if (transition_count)
       transition_count--;
 
@@ -170,6 +170,27 @@ class RandomPattern : public Pattern
 };
 RandomPattern r2;
 
+class TimedPattern : public Pattern
+{
+  public:
+    virtual void advance() { }
+    virtual uint32_t pixel( unsigned int ) { return col; }
+    virtual void activate()
+    {
+      Serial.println("Timed activate");
+      ticker.attach_scheduled(1, [this](){ col = Pixels::rgb_wheel(rand()); } );
+    }
+    virtual void deactivate()
+    {
+      Serial.println("Timed deactivate");
+      ticker.detach();
+    }
+  private:
+    Ticker ticker;
+    uint32_t col;
+};
+TimedPattern t1;
+
 
 uint32_t mix( uint32_t a, uint32_t b, unsigned int amnt)
 {
@@ -228,4 +249,5 @@ void app_setup( )
 
   pixel_patterns.push_back( &r1 );
   pixel_patterns.push_back( &r2 );
+  pixel_patterns.push_back( &t1 );
 }
