@@ -493,7 +493,7 @@ public:
     //pinMode( pin, OUTPUT );
       // the Adafruit_NeoPixel constructor will have done this for us
 
-    pixels.setBrightness( 4 );
+    pixels.setBrightness( 255 );
     pixels.begin(); // This initializes the NeoPixel library.
 
     ticker.attach( 0.1, [this](){ update(); } );
@@ -628,6 +628,8 @@ void setup( )
   web.setup();
   register_web_pages( web );
 #endif
+
+  app_setup();
 }
 
 void loop( )
