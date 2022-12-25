@@ -496,7 +496,7 @@ public:
     brightness( 0 );
     pixels.begin(); // This initializes the NeoPixel library.
 
-    ticker.attach( 0.1, [this](){ update(); } );
+    ticker.attach_ms( 50, [this](){ update(); } );
   }
 
   void brightness( uint8_t b )
