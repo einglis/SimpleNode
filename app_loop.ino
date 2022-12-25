@@ -22,42 +22,36 @@ int pattern_phase_inc = 1;
 
 // ----------------------------------------------------------------------------
 
-
-
 static int curr_pattern = 1;
 static int next_pattern = 1;
 static int last_pattern = 1;
 
 static int transition_count = 0;
-
-Ticker trans_ticker;
-
-void tfn( )
-{
-  if (transition_count == 0)
-  {
-    if (next_pattern != curr_pattern)
-    {
-      Serial.printf("new pattern; %u -> %u\n", curr_pattern, next_pattern);
-      transition_count = 254;
-      last_pattern = curr_pattern;
-      curr_pattern = next_pattern;
-    }
-  }
-  else
-  {
-    transition_count -= 1;
-  }
-
-  if (transition_count == 0)
-    trans_ticker.detach();
-}
+Ticker transition_ticker;
 
 void new_pattern( int pattern )
 {
   next_pattern = pattern;
 
-  trans_ticker.attach_ms_scheduled( 10, tfn );
+  transition_ticker.attach_ms_scheduled( 10, []() {
+    if (transition_count)
+      transition_count--;
+
+    if (transition_count == 0)
+    {
+      if (next_pattern != curr_pattern)
+      {
+        Serial.printf("new pattern; %u -> %u\n", curr_pattern, next_pattern);
+        last_pattern = curr_pattern;
+        curr_pattern = next_pattern;
+        transition_count = 255;
+      }
+      else
+      {
+        transition_ticker.detach();
+      }
+    }
+  } );
 }
 
 
