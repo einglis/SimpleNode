@@ -10,14 +10,6 @@ void power_off() { digitalWrite(POWER_PIN, LOW); }
 
 // ----------------------------------------------------------------------------
 
-void app_setup( )
-{
-  pinMode( POWER_PIN, OUTPUT );
-  power_off();
-}
-
-// ----------------------------------------------------------------------------
-
 int pattern_phase_inc = 1;
 
 // ----------------------------------------------------------------------------
@@ -61,15 +53,32 @@ void new_power( bool pwr )
   } );
 }
 
+
 static int curr_pattern = 0;
 static int next_pattern = curr_pattern;
 static int last_pattern = curr_pattern;
+
+class Pattern
+{
+  public:
+    virtual void advance() = 0;
+    virtual uint32_t pixel( unsigned int i ) = 0;
+    virtual ~Pattern() = 0;
+};
+Pattern::~Pattern() {} // pure virtual destructor.
+static std::vector< Pattern* >pixel_patterns;
 
 static int transition_count = 0;
 Ticker transition_ticker;
 
 void new_pattern( int pattern )
 {
+  if (pattern >= (int)pixel_patterns.size())
+  {
+    app_log.warningf( "unknown pattern %d", pattern );
+    return;
+  }
+
   next_pattern = pattern;
 
   transition_ticker.attach_ms_scheduled( 10, []() {
@@ -91,6 +100,11 @@ void new_pattern( int pattern )
       }
     }
   } );
+}
+
+void cycle_pattern( )
+{
+  new_pattern( (curr_pattern + 1) % pixel_patterns.size() ); 
 }
 
 
@@ -124,20 +138,11 @@ void app_mqtt_message( const char* data, int len )
   }
   else if (0 == strncmp("next", data, len))
   {
-    static int x = curr_pattern;
-    x = 1 - x;
-    new_pattern( x );
+    cycle_pattern( );
   }
 }
 
-class Pattern
-{
-  public:
-    virtual void advance() = 0;
-    virtual uint32_t pixel( unsigned int i ) = 0;
-    virtual ~Pattern() = 0;
-};
-Pattern::~Pattern() {} // pure virtual destructor.
+
 
 class RainbowPattern : public Pattern
 {
@@ -176,28 +181,16 @@ uint32_t mix( uint32_t a, uint32_t b, unsigned int amnt)
     return x;
 }
 
+
+
 bool app_pixels_update( uint16_t num_pixels, std::function< void(uint16_t n, uint32_t c) >pixel )
 {
 
-  Pattern* pattern = 0;
-
-  switch (curr_pattern)
-  {
-      default: curr_pattern = 1; // fallthrough
-      case 0: pattern = &r1; break;
-      case 1: pattern = &r2; break;
-  }
+  Pattern* pattern = pixel_patterns[ curr_pattern ];
+  Pattern* pattern_outgoing = pixel_patterns[ last_pattern ];
 
   if (transition_count > 0)
   {
-      Pattern* pattern_outgoing = 0;
-      switch (last_pattern)
-      {
-          default: last_pattern = 1; // fallthrough
-          case 0: pattern_outgoing = &r1; break;
-          case 1: pattern_outgoing = &r2; break;
-      }
-
       if (pattern && pattern_outgoing)
       {
           pattern->advance();
@@ -205,7 +198,6 @@ bool app_pixels_update( uint16_t num_pixels, std::function< void(uint16_t n, uin
           for (auto i = 0; i < num_pixels; i++)
               pixel( i, mix(pattern_outgoing->pixel(i),pattern->pixel(i),transition_count) );
       }
-
   }
   else
   {
@@ -218,4 +210,15 @@ bool app_pixels_update( uint16_t num_pixels, std::function< void(uint16_t n, uin
   }
 
   return true;
+}
+
+// ----------------------------------------------------------------------------
+
+void app_setup( )
+{
+  pinMode( POWER_PIN, OUTPUT );
+  power_off();
+
+  pixel_patterns.push_back( &r1 );
+  pixel_patterns.push_back( &r2 );
 }
