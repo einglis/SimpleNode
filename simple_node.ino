@@ -493,22 +493,32 @@ public:
     //pinMode( pin, OUTPUT );
       // the Adafruit_NeoPixel constructor will have done this for us
 
-    pixels.setBrightness( 255 );
+    brightness( 0 );
     pixels.begin(); // This initializes the NeoPixel library.
 
     ticker.attach( 0.1, [this](){ update(); } );
   }
 
-  static uint32_t Wheel(byte WheelPos)
+  void brightness( uint8_t b )
   {
-    if(WheelPos < 85) {
-      return Adafruit_NeoPixel::Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-    } else if(WheelPos < 170) {
-      WheelPos -= 85;
-      return Adafruit_NeoPixel::Color(255 - WheelPos * 3, 0, WheelPos * 3);
-    } else {
-      WheelPos -= 170;
-      return Adafruit_NeoPixel::Color(0, WheelPos * 3, 255 - WheelPos * 3);
+    pixels.setBrightness( b );
+  }
+
+  static uint32_t rgb_wheel( uint8_t p )
+  {
+    if (p < 85)
+    {
+      return Adafruit_NeoPixel::Color(p * 3, 255 - p * 3, 0);
+    }
+    else if(p < 170)
+    {
+      p -= 85;
+      return Adafruit_NeoPixel::Color(255 - p * 3, 0, p * 3);
+    }
+    else
+    {
+      p -= 170;
+      return Adafruit_NeoPixel::Color(0, p * 3, 255 - p * 3);
     }
   }
 
