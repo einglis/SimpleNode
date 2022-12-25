@@ -19,6 +19,7 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 #define NODE_HAS_NTP
 #define NODE_HAS_MQTT  // ~9 kHz cost
 #define NODE_HAS_WEB
+#define NODE_HAS_WEB_UPDATE
 #define NODE_HAS_INPUTS
 
 // ----------------------------------------------------------------------------
@@ -223,9 +224,9 @@ public:
     WifiObservers::add( this );
   }
 
-  void add_handler( const char* uri, WebRequestMethod method, std::function< void(AsyncWebServerRequest*) > fn )
+  void add_handler( const char* uri, WebRequestMethod method, ArRequestHandlerFunction fn, ArUploadHandlerFunction upload = nullptr )
   {
-    handlers.push_back( server.on( uri, method, fn ) );
+    handlers.push_back( server.on( uri, method, fn, upload ) );
   }
 
   virtual void wifi_down() // WifiObserver
