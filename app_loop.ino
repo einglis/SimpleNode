@@ -55,14 +55,15 @@ void new_power( bool pwr )
 
 
 static int curr_pattern = 0;
-static int next_pattern = curr_pattern;
-static int last_pattern = curr_pattern;
+static int prev_pattern = curr_pattern;
 
 class Pattern
 {
   public:
     virtual void advance() = 0;
     virtual uint32_t pixel( unsigned int i ) = 0;
+    virtual void activate() { }
+    virtual void deactivate() { }
     virtual ~Pattern() = 0;
 };
 Pattern::~Pattern() {} // pure virtual destructor.
@@ -71,15 +72,13 @@ static std::vector< Pattern* >pixel_patterns;
 static int transition_count = 0;
 Ticker transition_ticker;
 
-void new_pattern( int pattern )
+void new_pattern( int next_pattern )
 {
   if (pattern >= (int)pixel_patterns.size())
   {
     app_log.warningf( "unknown pattern %d", pattern );
     return;
   }
-
-  next_pattern = pattern;
 
   transition_ticker.attach_ms_scheduled( 10, []() {
     if (transition_count)
@@ -90,12 +89,16 @@ void new_pattern( int pattern )
       if (next_pattern != curr_pattern)
       {
         app_log.infof("new pattern; %u -> %u", curr_pattern, next_pattern);
-        last_pattern = curr_pattern;
+        pixel_patterns[next_pattern]->activate();
+          // won't be called for the very first pattern; gloss over this for now.
+
+        prev_pattern = curr_pattern;
         curr_pattern = next_pattern;
         transition_count = 255;
       }
       else
       {
+        pixel_patterns[prev_pattern]->deactivate();
         transition_ticker.detach();
       }
     }
@@ -148,8 +151,10 @@ class RainbowPattern : public Pattern
 {
   public:
     RainbowPattern() : j( 0 ) {}
-    void advance() { j += pattern_phase_inc; }
-    uint32_t pixel( unsigned int i ) { return Pixels::rgb_wheel((i+j) & 255); }
+    virtual void advance() { j += pattern_phase_inc; }
+    virtual uint32_t pixel( unsigned int i ) { return Pixels::rgb_wheel((i+j) & 255); }
+    virtual void activate() { Serial.println("Rainbow activate"); }
+    virtual void deactivate() { Serial.println("Rainbow deactivate"); }
   private:
     unsigned int j;
 };
@@ -158,8 +163,10 @@ RainbowPattern r1;
 class RandomPattern : public Pattern
 {
   public:
-    void advance() { }
-    uint32_t pixel( unsigned int ) { return Pixels::rgb_wheel(rand()); }
+    virtual void advance() { }
+    virtual uint32_t pixel( unsigned int ) { return Pixels::rgb_wheel(rand()); }
+    virtual void activate() { Serial.println("Random activate"); }
+    virtual void deactivate() { Serial.println("Random deactivate"); }
 };
 RandomPattern r2;
 
@@ -187,7 +194,7 @@ bool app_pixels_update( uint16_t num_pixels, std::function< void(uint16_t n, uin
 {
 
   Pattern* pattern = pixel_patterns[ curr_pattern ];
-  Pattern* pattern_outgoing = pixel_patterns[ last_pattern ];
+  Pattern* pattern_outgoing = pixel_patterns[ prev_pattern ];
 
   if (transition_count > 0)
   {
