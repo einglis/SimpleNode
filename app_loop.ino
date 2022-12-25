@@ -57,14 +57,14 @@ void new_power( bool pwr )
 static int curr_pattern = 0;
 static int prev_pattern = curr_pattern;
 
-class Pattern
+class PixelPattern
 {
 public:
   virtual void advance() = 0;
   virtual uint32_t pixel( unsigned int i ) = 0;
   virtual void activate() { }
   virtual void deactivate() { }
-  virtual ~Pattern() = 0;
+  virtual ~PixelPattern() = 0;
 
 protected:
   static uint8_t gamma( uint8_t x ) { return Adafruit_NeoPixel::gamma8(x); }
@@ -88,8 +88,8 @@ protected:
   }
 
 };
-Pattern::~Pattern() {} // pure virtual destructor.
-static std::vector< Pattern* >pixel_patterns;
+PixelPattern::~PixelPattern() {} // pure virtual destructor.
+static std::vector< PixelPattern* >pixel_patterns;
 
 static int transition_count = 0;
 Ticker transition_ticker;
@@ -169,7 +169,7 @@ void app_mqtt_message( const char* data, int len )
 
 
 
-class RainbowPattern : public Pattern
+class RainbowPattern : public PixelPattern
 {
   public:
     RainbowPattern() : j( 0 ) {}
@@ -180,7 +180,7 @@ class RainbowPattern : public Pattern
 };
 RainbowPattern r1;
 
-class RandomPattern : public Pattern
+class RandomPattern : public PixelPattern
 {
   public:
     virtual void advance() { }
@@ -188,7 +188,7 @@ class RandomPattern : public Pattern
 };
 RandomPattern r2;
 
-class SparklePattern : public Pattern
+class SparklePattern : public PixelPattern
 {
   public:
     virtual void advance() { }
@@ -200,7 +200,7 @@ class SparklePattern : public Pattern
 };
 SparklePattern s1;
 
-class TimedPattern : public Pattern
+class TimedPattern : public PixelPattern
 {
   public:
     virtual void advance() { }
@@ -244,8 +244,8 @@ uint32_t mix( uint32_t a, uint32_t b, unsigned int amnt)
 bool app_pixels_update( uint16_t num_pixels, std::function< void(uint16_t n, uint32_t c) >pixel )
 {
 
-  Pattern* pattern = pixel_patterns[ curr_pattern ];
-  Pattern* pattern_outgoing = pixel_patterns[ prev_pattern ];
+  PixelPattern* pattern = pixel_patterns[ curr_pattern ];
+  PixelPattern* pattern_outgoing = pixel_patterns[ prev_pattern ];
 
   if (transition_count > 0)
   {
