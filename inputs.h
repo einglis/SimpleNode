@@ -5,6 +5,11 @@ class DebouncedInput
 public:
   virtual ~DebouncedInput( ) { }
 
+  void update_debounce_ms( int debounce_ms )
+  {
+    max_count = debounce_ms;
+  }
+
 protected:
   DebouncedInput( std::function<int()> input_fn_, int debounce_ms )
     : state{ 0 }
@@ -39,7 +44,7 @@ protected:
 
 private:
   int count;
-  const int max_count;
+  int max_count;
   std::function<int()> input_fn;
   Ticker ticker;
 };
