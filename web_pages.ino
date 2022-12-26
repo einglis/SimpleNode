@@ -18,10 +18,10 @@ request->send(200, "text/plain", message);
 
 const char form[] PROGMEM =
   "<html><body>"
-  "<form method='POST' action='update'>"
-  "<input name='fo' value='http://mqtt:80/api/arduino/simple_node.ino.generic.bin' id='filename'>"
-  "<input type='submit'>"
-  "</form>"
+  //"<form method='POST' action='update'>"
+  //"<input name='fo' value='http://mqtt:80/api/arduino/simple_node.ino.generic.bin' id='filename'>"
+  //"<input type='submit'>"
+  //"</form>"
   "<form method='POST' enctype='multipart/form-data' action='update'>"
   "<input name='ff' value='' id='filename' type='file'>"
   "<input type='submit'>"
@@ -33,6 +33,15 @@ void handle_update( AsyncWebServerRequest* request )
 {
   request->send_P( 200, "text/html", form );
 }
+
+const char reset_form[] PROGMEM =
+  "<html><body>"
+  "Success"
+  "<form method='POST' action='reboot'>"
+  "<input type='submit' value='Reboot'>"
+  "</form>"
+  "</body></html>"
+;
 
 // ----------------------------------------------------------------------------
 
@@ -84,7 +93,7 @@ Logger update_log( "UPDATE" );
 
 void handle_update_done( AsyncWebServerRequest* request )
 {
-  AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", Update.hasError() ? "failed" : "success");
+  AsyncWebServerResponse *response = request->beginResponse(200, "text/html", Update.hasError() ? "failed" : reset_form);
   response->addHeader("Connection", "close");
   request->send(response);
 }
@@ -130,6 +139,12 @@ void handle_update_progress( AsyncWebServerRequest* request, String filename, si
   }
 }
 
+void handle_reboot( AsyncWebServerRequest* request )
+{
+  request->send(200, "text/plain", "Rebooting..." );
+  schedule_function( [](){ delay(500); ESP.restart(); } );
+}
+
 #endif
 
 }; // webpages
@@ -151,6 +166,7 @@ void register_web_pages( Webserver& web)
   #ifdef NODE_HAS_WEB_UPDATE
   web.add_handler( "/update", HTTP_GET, webpages::handle_update );
   web.add_handler( "/update", HTTP_POST, webpages::handle_update_done, webpages::handle_update_progress );
+  web.add_handler( "/reboot", HTTP_POST, webpages::handle_reboot );
   #endif
 
   web.add_handler( "/get_demo", HTTP_GET, webpages::handle_get_demo );
