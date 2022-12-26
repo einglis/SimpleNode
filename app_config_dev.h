@@ -7,3 +7,12 @@
 #define NODE_HAS_WEB_UPDATE
 //#define NODE_HAS_OTA_UPDATE
 #define NODE_HAS_INPUTS
+
+// outputs
+#define PIXELS_PIN 13
+#define LED_1_PIN  14 // active high
+#define LED_2_PIN  16 // active high
+
+// inputs
+#define BUTTON_PIN  0 // active low
+#define SWITCH_PIN 12 // active low

@@ -569,8 +569,8 @@ Pixels pixels;
 
 #ifdef NODE_HAS_INPUTS
 
-ButtonInput db( [](){ return !digitalRead(0); /*active low*/ } );
-SwitchInput ds( [](){ return !digitalRead(12); /*active low*/ } );
+ButtonInput db( [](){ return !digitalRead(BUTTON_PIN); /*active low*/ } );
+SwitchInput ds( [](){ return !digitalRead(SWITCH_PIN); /*active low*/ } );
 
 Logger input_log( "INPUTS" );
 

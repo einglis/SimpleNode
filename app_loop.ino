@@ -3,8 +3,6 @@ Logger app_log( "APP" );
 
 // ----------------------------------------------------------------------------
 
-#define POWER_PIN 14 // 14: dev, island
-
 void power_on()  { digitalWrite(POWER_PIN, LOW);  } // active low
 void power_off() { digitalWrite(POWER_PIN, HIGH); }
 
