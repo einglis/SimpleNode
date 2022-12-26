@@ -3,10 +3,10 @@ Logger app_log( "APP" );
 
 // ----------------------------------------------------------------------------
 
-#define POWER_PIN 14 // 14: dev, 5: island
+#define POWER_PIN 14 // 14: dev, island
 
-void power_on() { digitalWrite(POWER_PIN, HIGH); }
-void power_off() { digitalWrite(POWER_PIN, LOW); }
+void power_on()  { digitalWrite(POWER_PIN, LOW);  } // active low
+void power_off() { digitalWrite(POWER_PIN, HIGH); }
 
 // ----------------------------------------------------------------------------
 
@@ -195,11 +195,15 @@ bool app_pixels_update( uint16_t num_pixels, std::function< void(uint16_t n, uin
 
 namespace {
 
-#include "pixel_patterns/rainbow.h"
-RainbowPattern rainbow;
+#include "pixel_patterns/rainbows.h"
+CycleRainbowPattern rainbow1;
+MonoRainbowPattern rainbow2;
 
 #include "pixel_patterns/colour_random.h"
 ColourRandomPattern random_colours;
+
+#include "pixel_patterns/snakes.h"
+SnakesPattern snakes( NUMPIXELS );
 
 #include "pixel_patterns/sparkle.h"
 SparklePattern sparkle_white;
@@ -213,7 +217,9 @@ void app_setup( )
   pinMode( POWER_PIN, OUTPUT );
   power_off();
 
-  pixel_patterns.push_back( &rainbow );
+  pixel_patterns.push_back( &rainbow1 );
+  pixel_patterns.push_back( &rainbow2 );
+  pixel_patterns.push_back( &snakes );
   pixel_patterns.push_back( &random_colours );
   pixel_patterns.push_back( &sparkle_white );
   pixel_patterns.push_back( &sparkle_red );

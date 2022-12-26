@@ -12,6 +12,10 @@ public:
   virtual ~PixelPattern() = 0;
 
 protected:
+  static uint32_t colour( uint8_t r, uint8_t g, uint8_t b )
+  {
+    return Adafruit_NeoPixel::Color(r, g, b);
+  }
   static uint8_t gamma( uint8_t x ) 
   { 
     return Adafruit_NeoPixel::gamma8(x); 
