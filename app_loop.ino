@@ -103,46 +103,6 @@ void cycle_pattern( )
   new_pattern( (curr_pattern + 1) % pixel_patterns.size() ); 
 }
 
-
-void app_mqtt_message( const char* data, int len )
-{
-  app_log.infof( "mqtt message of len %u: %s", len, data );
-
-  if (0 == strncmp_P("std", data, len))
-  {
-    pattern_phase_inc = 1;
-  }
-  else if (0 == strncmp("fast", data, len))
-  {
-    pattern_phase_inc = 6;
-  }
-  else if (0 == strncmp("rev", data, len))
-  {
-    pattern_phase_inc = -2;
-  }
-  else if (0 == strncmp("on", data, len))
-  {
-    new_power(true);
-  }
-  else if (0 == strncmp("off", data, len))
-  {
-    new_power(false);
-  }
-  else if (0 == strncmp("toggle", data, len))
-  {
-    toggle_power();
-  }
-  else if (0 == strncmp("next", data, len))
-  {
-    cycle_pattern( );
-  }
-}
-
-
-
-
-
-
 uint32_t mix( uint32_t a, uint32_t b, unsigned int amnt)
 {
     uint32_t x = 0;
@@ -160,11 +120,8 @@ uint32_t mix( uint32_t a, uint32_t b, unsigned int amnt)
     return x;
 }
 
-
-
-bool app_pixels_update( uint16_t num_pixels, std::function< void(uint16_t n, uint32_t c) >pixel )
+bool app_pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32_t)> pixel )
 {
-
   PixelPattern* pattern = pixel_patterns[ curr_pattern ];
   PixelPattern* pattern_outgoing = pixel_patterns[ prev_pattern ];
 
@@ -224,4 +181,15 @@ void app_setup( )
   pixel_patterns.push_back( &sparkle_white );
   pixel_patterns.push_back( &sparkle_red );
   pixel_patterns.push_back( &sparkle_yellow );
+
+  mqtt.on( "std",  [](auto, auto){ pattern_phase_inc =  1; } );
+  mqtt.on( "fast", [](auto, auto){ pattern_phase_inc =  6; } );
+  mqtt.on( "rev",  [](auto, auto){ pattern_phase_inc = -1; } );
+  mqtt.on( "next", [](auto, auto){ cycle_pattern(); } );
+
+  mqtt.on( "on",     [](auto, auto){ new_power(true); } );
+  mqtt.on( "off",    [](auto, auto){ new_power(false); } );
+  mqtt.on( "toggle", [](auto, auto){ toggle_power(); } );
+
+  //mqtt.on( "", [](auto, auto){ /*catchall*/ } );
 }
