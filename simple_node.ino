@@ -11,6 +11,7 @@
 #include "build.gen.h"
 const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
+#include "inputs.h"
 #include "logging.h"
 
 // ----------------------------------------------------------------------------
@@ -18,10 +19,6 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 #include "app_config.h"
 
 // ----------------------------------------------------------------------------
-
-#ifdef NODE_HAS_INPUTS
-#include "inputs.h"
-#endif
 
 #ifdef NODE_HAS_WEB
 // forward declarations to protect against Arduino's odd choices about where to add
