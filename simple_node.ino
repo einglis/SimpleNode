@@ -632,7 +632,7 @@ void loop( )
 
   loops++;
   long now = millis();
-  if (now - last > LOOP_RATE_CHECK_INTERVAL_MS)
+  if (now - last > 7000) // magic, but arbitrary number
   {
     log.debugf( "loop rate is about %d Hz", loops * 1000 / (now-last) );
     loops = 0;
