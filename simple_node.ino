@@ -292,6 +292,11 @@ public:
       }
   }
 
+  bool publish( const char* payload )
+  {
+    return client.publish( MQTT_PUB_TOPIC, payload );
+  }
+
 private:
   WiFiClient my_wifi;
   Adafruit_MQTT_Client client;

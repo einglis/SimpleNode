@@ -4,8 +4,8 @@
 Logger app_log( "APP" );
 Logger input_log( "INPUTS" );
 
-SwitchInput switch_a( [](){ return digitalRead(SWITCH_A_PIN); /*active low*/ } );
-SwitchInput switch_b( [](){ return digitalRead(SWITCH_B_PIN); /*active low*/ } );
+SwitchInput switch_a( [](){ return digitalRead(SWITCH_A_PIN); } );
+SwitchInput switch_b( [](){ return digitalRead(SWITCH_B_PIN); } );
 
 void switch_event( char s, SwitchInput::Event f ) // called in SYS context
 {
@@ -13,10 +13,12 @@ void switch_event( char s, SwitchInput::Event f ) // called in SYS context
     switch (f)
     {
       case SwitchInput::FlipOpen:
-          input_log.infof( "Switch %c flip open", s );
+          input_log.debugf( "Switch %c flip open", s );
+          mqtt.publish( (s == 'A') ? "door A open" : "door B open" );
           break;
       case SwitchInput::FlipClose:
-          input_log.infof( "Switch %c flip close", s );
+          input_log.debugf( "Switch %c flip close", s );
+          mqtt.publish( (s == 'A') ? "door A closed" : "door B closed" );
           break;
       default:
           break;
