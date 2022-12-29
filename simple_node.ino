@@ -235,7 +235,7 @@ public:
     : client( &my_wifi, MQTT_HOST, MQTT_PORT, MQTT_CLIENT, ""/*key*/) // lazy config
     { }
 
-  void setup( void(* sub_callback)(char *data, uint16_t len) )
+  void setup( )
   {
     const bool will_rc = client.will( "will_topic", "will_payload" );
     if (!will_rc)
@@ -247,7 +247,6 @@ public:
 
 
     auto sub = std::make_shared<Adafruit_MQTT_Subscribe>( &client, MQTT_SUB_TOPIC );
-    sub->setCallback( sub_callback );
 
     const bool sub_rc = client.subscribe( sub.get() );
     if (!sub_rc)
@@ -278,18 +277,6 @@ public:
   {
     auto handler = std::make_shared<MqttHandler>( stem, fn );
     handlers.push_back( handler );
-  }
-
-  // It's a necessary evil to have this public if we want it called by the shim
-  // A slight bonus is we can then abuse it to pass in local messages, maybe?
-  void handle_message( const char *msg, uint16_t )
-  {
-    for ( auto h : handlers )
-      if (0 == strncmp(h->stem, msg, h->stem_len))
-      {
-        h->fn( msg, msg+h->stem_len );
-        break;
-      }
   }
 
   bool publish( const char* payload )
@@ -331,6 +318,16 @@ private:
     ping_ticker.detach();
   }
 
+  void handle_message( const char *msg, uint16_t )
+  {
+    for ( auto h : handlers )
+      if (0 == strncmp(h->stem, msg, h->stem_len))
+      {
+        h->fn( msg, msg+h->stem_len );
+        break;
+      }
+  }
+
   void poll( bool was_connected = false )
   {
     if (client.connected())
@@ -338,7 +335,9 @@ private:
       Adafruit_MQTT_Subscribe *sub = client.readSubscription( 0/*timeout*/ );
       for (int i = 0; sub && i < 10; i++) // i count is to limit potential batch size
       {
-        client.processSubscriptionPacket( sub );
+        handle_message((const char *)sub->lastread, sub->datalen);
+        sub->new_message = false; // as per 'client.processSubscriptionPacket()'
+
         sub = client.readSubscription( 0/*timeout*/ );
       }
     }
@@ -368,11 +367,6 @@ private:
 
 Mqtt mqtt;
 Logger Mqtt::log( "MQTT" );
-
-void mqtt_handle_message_shim( char* data, uint16_t len )
-{
-  mqtt.handle_message( data, len );
-}
 
 #endif
 
@@ -644,7 +638,7 @@ void setup( )
   ntp.setup();
 #endif
 #ifdef NODE_HAS_MQTT
-  mqtt.setup( mqtt_handle_message_shim );
+  mqtt.setup( );
 #endif
 #ifdef NODE_HAS_PIXELS
   pixels.setup();
