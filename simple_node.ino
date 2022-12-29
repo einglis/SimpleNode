@@ -308,7 +308,7 @@ public:
 
   void setup( )
   {
-    const bool will_rc = client.will( "will_topic", "will_payload" );
+    const bool will_rc = client.will( MQTT_PUB_TOPIC, "offline" );
     if (!will_rc)
       log.warning( F("failed to set will") );
 
@@ -379,8 +379,8 @@ private:
   {
     log.info( F("connected") );
 
-    char buf[32];
-    sprintf( buf, "ip %s", wifi.ip().toString().c_str() );
+    char buf[32]; // 16 bytes of ipv4 + some
+    sprintf( buf, "online %s", wifi.ip().toString().c_str() );
     publish( buf );
 
     ping_ticker.attach_scheduled( MQTT_KEEPALIVE, [this]() {
