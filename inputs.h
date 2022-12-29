@@ -16,7 +16,14 @@ protected:
     , count{ 0 }
     , max_count{ debounce_ms }
     , input_fn{ input_fn_ }
-    { }
+    {
+      if (!input_fn())
+      {
+        // force an event at startup even if input is low.
+        state = 1;
+        count = max_count;
+      }
+    }
 
   void setup()
   {
