@@ -176,6 +176,77 @@ Logger Uptime::log( "UPTIME" );
 
 // ----------------------------------------------------------------------------
 
+class NodeWiFi
+{
+public:
+  NodeWiFi( )
+    : is_connected{ false }
+    { }
+
+  void setup()
+  {
+    log.infof( "MAC: %s", WiFi.macAddress().c_str() );
+
+    WiFi.hostname( WIFI_HOSTNAME );
+    WiFi.persistent(false); // don't stash config in Flash
+
+    handlers.push_back( WiFi.onStationModeDisconnected( [this](auto e){ wifi_disconnected(e); } ) );
+    handlers.push_back( WiFi.onStationModeConnected( [this](auto e){ wifi_connected(e); } ) );
+    handlers.push_back( WiFi.onStationModeGotIP( [this](auto e){ wifi_got_ip(e); } ) );
+
+    log.info( F("inital connection...") );
+    patterns.set( PATTERN_WIFI_DISCONNECTED );
+
+    WiFi.mode( WIFI_STA );
+    WiFi.begin( WIFI_SSID, WIFI_PASSWD );
+      // it transpires that this will keep looking forever,
+      // _and_ try to reconnect if the connection is lost.
+  }
+
+  IPAddress ip() { return my_ip; }
+
+private:
+  std::vector< WiFiEventHandler > handlers;
+  bool is_connected;
+  IPAddress my_ip;
+
+  void wifi_disconnected( const WiFiEventStationModeDisconnected& )
+  {
+    if (!is_connected) // this function tends to get called over-and-over
+      return
+
+    patterns.set( PATTERN_WIFI_DISCONNECTED );
+    log.info( F("disconnected") );
+    is_connected = false;
+    my_ip.clear();
+
+    schedule_function( []() { WifiObservers::wifi_down(); } );
+  }
+
+  void wifi_connected( const WiFiEventStationModeConnected & )
+  {
+    patterns.set( PATTERN_WIFI_CONNECTED );
+    log.info( F("connected") );
+    is_connected = true;
+  }
+
+  void wifi_got_ip( const WiFiEventStationModeGotIP &e )
+  {
+    patterns.set( PATTERN_WIFI_GOT_IP );
+    log.infof( "got IP: %s", e.ip.toString().c_str() );
+    my_ip = e.ip;
+
+    schedule_function( []() { WifiObservers::wifi_up(); } );
+  }
+
+  static Logger log;
+};
+
+NodeWiFi wifi;
+Logger NodeWiFi::log( "WIFI" );
+
+// ----------------------------------------------------------------------------
+
 #ifdef NODE_HAS_WEB
 
 class Webserver
@@ -307,6 +378,11 @@ private:
   void mqtt_connected( )
   {
     log.info( F("connected") );
+
+    char buf[32];
+    sprintf( buf, "ip %s", wifi.ip().toString().c_str() );
+    publish( buf );
+
     ping_ticker.attach_scheduled( MQTT_KEEPALIVE, [this]() {
       log.debug( F("ping") );
       client.ping(); // can block for up to 500 ms.
@@ -435,72 +511,6 @@ Ntp ntp;
 Logger Ntp::log( "NTP" );
 
 #endif
-
-// ----------------------------------------------------------------------------
-
-class NodeWiFi
-{
-public:
-  NodeWiFi( )
-    : is_connected{ false }
-    { }
-
-  void setup()
-  {
-    log.infof( "MAC: %s", WiFi.macAddress().c_str() );
-
-    WiFi.hostname( WIFI_HOSTNAME );
-    WiFi.persistent(false); // don't stash config in Flash
-
-    handlers.push_back( WiFi.onStationModeDisconnected( [this](auto e){ wifi_disconnected(e); } ) );
-    handlers.push_back( WiFi.onStationModeConnected( [this](auto e){ wifi_connected(e); } ) );
-    handlers.push_back( WiFi.onStationModeGotIP( [this](auto e){ wifi_got_ip(e); } ) );
-
-    log.info( F("inital connection...") );
-    patterns.set( PATTERN_WIFI_DISCONNECTED );
-
-    WiFi.mode( WIFI_STA );
-    WiFi.begin( WIFI_SSID, WIFI_PASSWD );
-      // it transpires that this will keep looking forever,
-      // _and_ try to reconnect if the connection is lost.
-  }
-
-private:
-  std::vector< WiFiEventHandler > handlers;
-  bool is_connected;
-
-  void wifi_disconnected( const WiFiEventStationModeDisconnected& )
-  {
-    if (!is_connected) // this function tends to get called over-and-over
-      return
-
-    patterns.set( PATTERN_WIFI_DISCONNECTED );
-    log.info( F("disconnected") );
-    is_connected = false;
-
-    schedule_function( []() { WifiObservers::wifi_down(); } );
-  }
-
-  void wifi_connected( const WiFiEventStationModeConnected & )
-  {
-    patterns.set( PATTERN_WIFI_CONNECTED );
-    log.info( F("connected") );
-    is_connected = true;
-  }
-
-  void wifi_got_ip( const WiFiEventStationModeGotIP &e )
-  {
-    patterns.set( PATTERN_WIFI_GOT_IP );
-    log.infof( "got IP: %s", e.ip.toString().c_str() );
-
-    schedule_function( []() { WifiObservers::wifi_up(); } );
-  }
-
-  static Logger log;
-};
-
-NodeWiFi wifi;
-Logger NodeWiFi::log( "WIFI" );
 
 // ----------------------------------------------------------------------------
 
