@@ -4,14 +4,6 @@
 Logger app_log( "APP" );
 Logger input_log( "INPUTS" );
 
-enum { DOOR_A = 0, DOOR_B = 1, num_doors = 2 };
-bool is_open[num_doors] = { false, false };
-int pins[num_doors] = { BUTTON_A_PIN, BUTTON_B_PIN };
-
-SwitchInput switch_a( [](){ return !digitalRead( SWITCH_A_PIN ); } );
-SwitchInput switch_b( [](){ return !digitalRead( SWITCH_B_PIN ); } );
-  // the switch inputs themselves are active high, but the logic from the door is active low.
-
 void door_open_led( int index, bool on )
 {
   static int state = 0;
@@ -28,92 +20,124 @@ void bipping_led( int index, bool on )
   digitalWrite( LED_2_PIN, state );
 }
 
-void switch_event( int s, SwitchInput::Event f ) // called in SYS context
+// ----------------------------------------------------------------------------
+
+class Door
 {
-  if (s != DOOR_A and s != DOOR_B)
-    return; // never expected
-
-  schedule_function( [=]() {
-    switch (f)
-    {
-      case SwitchInput::FlipOpen:
-          input_log.debugf( "Switch %c flip open", s + 'A' );
-          is_open[ s ] = true;
-          door_open_led( s, true );
-          mqtt.publish( (s == DOOR_A) ? "door A open" : "door B open" );
-          break;
-      case SwitchInput::FlipClose:
-          input_log.debugf( "Switch %c flip close", s + 'A' );
-          is_open[ s ] = false;
-          door_open_led( s, false );
-          mqtt.publish( (s == DOOR_A) ? "door A closed" : "door B closed" );
-          break;
-      default:
-          break;
-    }
-  } );
-}
-
-Ticker bip_ticker;
-unsigned int bips_requested[num_doors] = { };
-  // it seems reasonable to ignore overflow; this is at least 65k bips
-
-void bip_wrangler( )
-{
-  static unsigned int bips_performed[num_doors] = { };
-  static int state[num_doors] = { };
-
-  for (auto i = 0; i < num_doors; i++)
+public:
+  Door( const char *name, int switch_pin, int button_pin )
+    : name{ name }
+    , switch_pin{ switch_pin }
+    , button_pin{ button_pin }
+    , switch_in{ [switch_pin](){ return !digitalRead( switch_pin ); } }
+        // the switch inputs themselves are active high,
+        // but the logic from the door is active low.
+    , is_open{ false }
+    , bips_requested{ 0 }
+    , bips_performed{ 0 }
+    , bip_state{ 0 }
+    , index{ next_index++ }
   {
-    switch (state[i])
+    pinMode( button_pin, OUTPUT );
+    pinMode( switch_pin, INPUT );
+  }
+
+  void setup( )
+  {
+    switch_in.setup( [this](SwitchInput::Event f, int){ switch_event( f ); } );
+    bip_ticker.attach_ms_scheduled( 500, [this](){ bip_wrangler(); } );
+    mqtt.on( name, [this](auto, auto){ bips_requested++; } );
+  }
+
+private:
+  void switch_event( SwitchInput::Event f ) // called in SYS context
+  {
+    schedule_function( [this, f]() {
+      char buf[32];
+
+      switch (f)
+      {
+        case SwitchInput::FlipOpen:
+            is_open = true;
+            door_open_led( index, true );
+            sprintf( buf, "%s open", name );
+            input_log.debugf( buf );
+            mqtt.publish( buf );
+            break;
+        case SwitchInput::FlipClose:
+            is_open = false;
+            door_open_led( index, false );
+            sprintf( buf, "%s closed", name );
+            input_log.debugf( buf );
+            mqtt.publish( buf );
+            break;
+        default:
+            break;
+      }
+    } );
+  }
+
+  void bip_wrangler( )
+  {
+    switch (bip_state)
     {
       case 0: // idle
-        if (bips_requested[i] > bips_performed[i])
+        if (bips_requested > bips_performed)
         {
-          digitalWrite( pins[i], HIGH );
-          bipping_led( i, true );
+          digitalWrite( button_pin, HIGH );
+          bipping_led( index, true );
 
-          state[i] = 1; // bipping
+          bip_state = 1; // bipping
         }
         break;
 
       case 1: // bipping
-        digitalWrite( pins[i], LOW );
-        bipping_led( i, false );
+        digitalWrite( button_pin, LOW );
+        bipping_led( index, false );
 
-        state[i] = 2; // holdoff
+        bip_state = 2; // holdoff
         break;
 
       case 2: // hold off
       default:
         // don't want more than one bip queued, so fake up the counter
         // by advancing further than the one we just did if needs be.
-        bips_performed[i] = max( bips_performed[i] + 1, bips_requested[i] - 1);
+        bips_performed = max( bips_performed + 1, bips_requested - 1);
 
-        state[i] = 0; // idle
+        bip_state = 0; // idle
         break;
     }
   }
-}
+
+  const char* name;
+  const int switch_pin;
+  const int button_pin;
+  SwitchInput switch_in;
+  bool is_open;
+
+  Ticker bip_ticker;
+  unsigned int bips_requested;
+  unsigned int bips_performed;
+  int bip_state;
+
+  int index;
+  static int next_index;
+};
+
+int Door::next_index = 0;
+
+// ----------------------------------------------------------------------------
+
+Door a( "doorA", SWITCH_A_PIN, BUTTON_A_PIN );
+Door b( "doorB", SWITCH_B_PIN, BUTTON_B_PIN );
 
 void app_setup( )
 {
   pinMode( LED_1_PIN, OUTPUT );
   pinMode( LED_2_PIN, OUTPUT );
-  pinMode( BUTTON_A_PIN, OUTPUT );
-  pinMode( BUTTON_B_PIN, OUTPUT );
-  pinMode( SWITCH_A_PIN, INPUT );
-  pinMode( SWITCH_B_PIN, INPUT );
 
-  bip_ticker.attach_ms_scheduled( 500, bip_wrangler );
-
-  switch_a.setup( [](SwitchInput::Event f, int ){ switch_event( DOOR_A, f ); } );
-  switch_a.update_debounce_ms( 100 ); // potentially noisy inputs so be conservative
-  switch_b.setup( [](SwitchInput::Event f, int ){ switch_event( DOOR_B, f ); } );
-  switch_b.update_debounce_ms( 100 );
-
-  mqtt.on( "doorA", [](auto, auto){ ++bips_requested[DOOR_A]; } );
-  mqtt.on( "doorB", [](auto, auto){ ++bips_requested[DOOR_B]; } );
+  a.setup();
+  b.setup();
 }
 
 // ----------------------------------------------------------------------------
