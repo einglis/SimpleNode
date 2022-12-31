@@ -30,8 +30,7 @@ public:
     , switch_pin{ switch_pin }
     , button_pin{ button_pin }
     , switch_in{ [switch_pin](){ return !digitalRead( switch_pin ); } }
-        // the switch inputs themselves are active high,
-        // but the logic from the door is active low.
+        // the switch input is active high, but the logic from the door is active low.
     , is_open{ false }
     , bips_requested{ 0 }
     , bips_performed{ 0 }
@@ -45,6 +44,8 @@ public:
   void setup( )
   {
     switch_in.setup( [this](SwitchInput::Event f, int){ switch_event( f ); } );
+    switch_in.update_debounce_ms( 100 ); // potentially noisy inputs so be conservative
+
     bip_ticker.attach_ms_scheduled( 500, [this](){ bip_wrangler(); } );
     mqtt.on( name, [this](auto, auto){ bips_requested++; } );
   }
@@ -64,6 +65,7 @@ private:
             input_log.debugf( buf );
             mqtt.publish( buf );
             break;
+
         case SwitchInput::FlipClose:
             is_open = false;
             door_open_led( index, false );
@@ -71,6 +73,7 @@ private:
             input_log.debugf( buf );
             mqtt.publish( buf );
             break;
+
         default:
             break;
       }
@@ -118,6 +121,7 @@ private:
   Ticker bip_ticker;
   unsigned int bips_requested;
   unsigned int bips_performed;
+    // we will ignore overflow; this is at least 65k bips
   int bip_state;
 
   int index;
