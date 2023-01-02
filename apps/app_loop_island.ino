@@ -179,6 +179,7 @@ void app_setup( )
   pixel_patterns.push_back( &sparkle_white );
   pixel_patterns.push_back( &sparkle_red );
   pixel_patterns.push_back( &sparkle_yellow );
+  pixels.brightness( 0 );
 
   mqtt.on( "std",  [](auto, auto){ pattern_phase_inc =  1; } );
   mqtt.on( "fast", [](auto, auto){ pattern_phase_inc =  6; } );

@@ -643,7 +643,6 @@ public:
     //pinMode( pin, OUTPUT );
       // the Adafruit_NeoPixel constructor will have done this for us
 
-    brightness( 0 );
     pixels.begin(); // This initializes the NeoPixel library.
 
     ticker.attach_ms( 50, [this](){ update(); } );
