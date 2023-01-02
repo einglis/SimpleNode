@@ -162,10 +162,7 @@ public:
     (void)load( );
   }
 
-  bool is_valid() const
-  {
-    return valid;
-  }
+  bool is_valid() const { return valid; }
 
   AppConfig& rw() { return app_config; }
   const AppConfig& ro() { return app_config; }
@@ -671,7 +668,8 @@ Pixels pixels;
 
 void setup( )
 {
-  Serial.begin(57600);
+  Serial.begin(115200);
+  Serial.println("");
   Serial.println("");
   Serial.println("");
   Serial.println( Version );
