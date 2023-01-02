@@ -11,20 +11,11 @@
 #include "build.gen.h"
 const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
-#include "inputs.h"
 #include "logging.h"
 
 // ----------------------------------------------------------------------------
 
 #include "app_config.h"
-
-// ----------------------------------------------------------------------------
-
-#ifdef NODE_HAS_WEB
-// forward declarations to protect against Arduino's odd choices about where to add
-// its own function prototypes, which are invariably before the actual declarations.
-class Webserver;
-#endif
 
 // ----------------------------------------------------------------------------
 
@@ -573,59 +564,6 @@ Pixels pixels;
 
 // ----------------------------------------------------------------------------
 
-#ifdef NODE_HAS_INPUTS
-
-ButtonInput db( [](){ return !digitalRead(BUTTON_PIN); /*active low*/ } );
-SwitchInput ds( [](){ return !digitalRead(SWITCH_PIN); /*active low*/ } );
-
-Logger input_log( "INPUTS" );
-
-void button_event( ButtonInput::Event f, int count ) // called in SYS context
-{
-  schedule_function( [=]() {
-    switch (f)
-    {
-      case ButtonInput::Press:
-          input_log.infof( "Button press %d", count );
-          break;
-      case ButtonInput::HoldShort:
-          input_log.infof( "Button hold short (%d)", count );
-          break;
-      case ButtonInput::HoldLong:
-          input_log.infof( "Button hold long (%d)", count );
-          break;
-      case ButtonInput::Final:
-          input_log.infof( "Button final (%d)", count );
-          break;
-      default:
-          break; // most unexpected.
-    }
-  } );
-}
-void switch_event( SwitchInput::Event f, int count ) // called in SYS context
-{
-  schedule_function( [=]() {
-    switch (f)
-    {
-      case SwitchInput::FlipOpen:
-          input_log.infof( "Switch flip open (%d)", count );
-          break;
-      case SwitchInput::FlipClose:
-          input_log.infof( "Switch flip close (%d)", count );
-          break;
-      case SwitchInput::Final:
-          input_log.infof( "Switch final (%d)", count );
-          break;
-      default:
-          break; // most unexpected.
-    }
-  } );
-}
-
-#endif
-
-// ----------------------------------------------------------------------------
-
 void setup( )
 {
   Serial.begin(57600);
@@ -636,11 +574,6 @@ void setup( )
 
   uptime.setup();
   patterns.setup();
-
-#ifdef NODE_HAS_INPUTS
-  ds.setup( switch_event );
-  db.setup( button_event );
-#endif
 
   wifi.setup();
 
