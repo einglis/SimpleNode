@@ -552,14 +552,22 @@ public:
     : client( my_wifi, NTP_HOST/*lazy*/ )
   { }
 
-  void setup()
+  void setup( int report_interval = 0 )
   {
-    report_ticker.attach_scheduled( 11, [this](){
-      log.infof( "time: %s", client.getFormattedTime() );
-    } );
+    if (report_interval)
+      report_ticker.attach_scheduled( report_interval, [this](){
+        log.infof( "time: %s", client.getFormattedTime() );
+      } );
 
     WifiObservers::add( this );
   }
+
+  long int epoch_time( ) { return client.getEpochTime(); }
+
+  static int epoch_day( long int e )  { return (e / 86400L + 4) % 7; } // 0 == sunday
+  static int epoch_hrs( long int e )  { return (e % 86400L) / 3600; }
+  static int epoch_mins( long int e ) { return (e % 3600) / 60; }
+  static int epoch_secs( long int e ) { return  e % 60; }
 
   virtual void wifi_up() // WifiObserver
   {
@@ -685,7 +693,7 @@ void setup( )
   wifi.setup();
 
 #ifdef NODE_HAS_NTP
-  ntp.setup();
+  ntp.setup( 11 /*report interval in seconds*/ );
 #endif
 #ifdef NODE_HAS_MQTT
   mqtt.setup( );
