@@ -9,7 +9,7 @@
 #define NODE_HAS_INPUTS
 #define NODE_HAS_CONFIG
 
-struct Config
+struct AppConfig
 {
   int counter;
 };

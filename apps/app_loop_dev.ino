@@ -3,6 +3,8 @@
 void button_event( ButtonInput::Event e, int count ); // fwd declarations as Arduino
 void switch_event( SwitchInput::Event e, int count ); // compiler workaround
 
+Configuration& config = configuration; // gratuitous naming alias
+
 Logger app_log( "APP" );
 
 // ----------------------------------------------------------------------------
@@ -86,4 +88,15 @@ void app_setup( )
   ds.setup( [](auto e, auto c){ switch_event( e, c ); } );
 
   mqtt.on( "", [](auto, auto){ app_log.infof( "mqtt message" ); } );
+
+
+  if (!config.is_valid())
+  {
+    app_log.warning( "loaded configuration is not valid" );
+    config.rw().counter = 0;
+  }
+
+  app_log.infof( "config counter is %d", config().counter );
+  config.rw().counter++;
+  config.save();
 }

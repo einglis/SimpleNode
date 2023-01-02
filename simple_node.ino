@@ -135,13 +135,15 @@ Logger Uptime::log( "UPTIME" );
 
 #ifdef NODE_HAS_CONFIG
 
+#define CONFIG_MAGIC 0x20f4da53
+
 union ConfigHeader
 {
   struct {
-    int version;
+    uint32_t magic;
     size_t length;
   };
-  uint8_t padding[64]; // future proof
+  uint8_t padding[32]; // gentle future proof
 };
 
 class Configuration
@@ -149,6 +151,7 @@ class Configuration
 public:
   Configuration( const char* filename = CONFIG_FILENAME )
     : filename{ filename }
+    , valid{ false }
   { }
 
   void setup()
@@ -156,41 +159,42 @@ public:
     if (!LittleFS.begin())
       log.error( "failed to mount file system" );
 
-    Config c;
-    (void)load( c );
-    log.debugf( "loaded counter is %d", c.counter );
-
-    srand( c.counter );
-    c.counter = rand();
-    log.debugf( "new counter is %d", c.counter );
-    (void)save( c );
+    (void)load( );
   }
 
-  bool save( Config &c )
+  bool is_valid() const
+  {
+    return valid;
+  }
+
+  AppConfig& rw() { return app_config; }
+  const AppConfig& ro() { return app_config; }
+  const AppConfig& operator()() { return ro(); }
+
+  bool save( )
   {
     File cf = LittleFS.open( filename, "w" ); // "wb" not allowed, apparently
     if (!cf)
     {
       log.error( "cannot open config for writing" );
+      // does not necessarily invalidate the config
       return false;
     }
 
-    if (hdr.version < 0 or hdr.version > 1000) // debug
-      hdr.version = 0;
-    hdr.version++;
-    log.debugf( "new version is %d", hdr.version );
-
-    hdr.length = sizeof(c);
-
     bool save_success = false;
+
+    ConfigHeader hdr;
+    memset( &hdr, 0, sizeof(hdr) );
+    hdr.magic = CONFIG_MAGIC;
+    hdr.length = sizeof(app_config);
 
     const size_t write_rc = cf.write( (const uint8_t*)&hdr, sizeof(hdr) );
     if (write_rc == sizeof(hdr))
     {
-      const size_t write_rc = cf.write( (const uint8_t*)&c, hdr.length );
+      const size_t write_rc = cf.write( (const uint8_t*)&app_config, hdr.length );
       save_success = (write_rc == hdr.length);
       if (save_success)
-        log.infof( "successfully wrote %u bytes of config", write_rc );
+        log.debugf( "successfully wrote %u bytes of config", write_rc );
       else
         log.errorf( "wrote %u bytes, not %u, of config", write_rc, hdr.length );
     }
@@ -201,38 +205,47 @@ public:
 
     cf.close();
 
+    valid = save_success; // implicitly valid once saved
     return save_success;
   }
 
-  bool load( Config &c )
+  bool load( )
   {
     File cf = LittleFS.open( filename, "r" );
     if (!cf)
     {
       log.error( "cannot open config for reading" );
+      // does not necessarily invalidate the config
       return false;
     }
 
     bool load_success = false;
 
+    ConfigHeader hdr;
+
     const size_t read_rc = cf.read( (uint8_t*)&hdr, sizeof(hdr) );
     if (read_rc == sizeof(hdr))
     {
-      log.debugf( "loaded version is %d", hdr.version );
-      log.debugf( "loaded length is %u", hdr.length );
-      if (hdr.length != sizeof(c))
-        log.warningf( "length %u does not match config size %u", hdr.length, sizeof(c) );
-          // not necessarily terminal; eg if config has changed length between versions; caveat emptor.
+      if (hdr.magic == CONFIG_MAGIC)
+      {
+        if (hdr.length != sizeof(app_config))
+          log.warningf( "length %u does not match config size %u", hdr.length, sizeof(app_config) );
+            // not necessarily terminal; eg if config has changed length between versions; caveat emptor.
 
-      hdr.length = min( hdr.length, sizeof(c) );
-        // just in case the config has got shorter, don't want to overflow the structure
+        hdr.length = min( hdr.length, sizeof(app_config) );
+          // just in case the config has got shorter, don't want to overflow the structure
 
-      const size_t read_rc = cf.read( (uint8_t*)&c, hdr.length );
-      load_success = (read_rc == hdr.length);
-      if (load_success)
-        log.infof( "successfully read %u bytes of config", read_rc );
+        const size_t read_rc = cf.read( (uint8_t*)&app_config, hdr.length );
+        load_success = (read_rc == hdr.length);
+        if (load_success)
+          log.debugf( "successfully read %u bytes of config", read_rc );
+        else
+          log.errorf( "read %u bytes, not %u, of config", read_rc, hdr.length );
+      }
       else
-        log.errorf( "read %u bytes, not %u, of config", read_rc, hdr.length );
+      {
+        log.warningf( "header magic %08x not expected %08x", hdr.magic, CONFIG_MAGIC );
+      }
     }
     else
     {
@@ -241,12 +254,14 @@ public:
 
     cf.close();
 
+    valid = load_success;
     return load_success;
   }
 
 private:
   const char *filename;
-  ConfigHeader hdr;
+  AppConfig app_config;
+  bool valid;
 
   static Logger log;
 };
