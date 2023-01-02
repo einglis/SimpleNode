@@ -1,6 +1,7 @@
 #pragma once
 
 #include "app_config_dev.h"
+//#include "app_config_doorotron.h"
 //#include "app_config_island.h"
 
 #include "private_config.h" // not in repo...
@@ -59,6 +60,10 @@
 
 #ifndef WEBSERVER_PORT
 #define WEBSERVER_PORT 80
+#endif
+
+#ifndef CONFIG_FILENAME
+#define CONFIG_FILENAME "/node_config.bin"
 #endif
 
 // ----------------------------------------------------------------------------

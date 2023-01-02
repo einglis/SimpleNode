@@ -4,18 +4,15 @@
 #include <Adafruit_NeoPixel.h>
 #include <ESP8266WiFi.h>
 #include <ESPAsyncWebServer.h>
+#include <LittleFS.h>
 #include <NTPClient.h>
 #include <Ticker.h>
 #include <WiFiUdp.h>
 
+#include "app_config.h"
 #include "build.gen.h"
 const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
-
 #include "logging.h"
-
-// ----------------------------------------------------------------------------
-
-#include "app_config.h"
 
 // ----------------------------------------------------------------------------
 
@@ -164,6 +161,131 @@ private:
 
 Uptime uptime;
 Logger Uptime::log( "UPTIME" );
+
+// ----------------------------------------------------------------------------
+
+#ifdef NODE_HAS_CONFIG
+
+union ConfigHeader
+{
+  struct {
+    int version;
+    size_t length;
+  };
+  uint8_t padding[64]; // future proof
+};
+
+class Configuration
+{
+public:
+  Configuration( const char* filename = CONFIG_FILENAME )
+    : filename{ filename }
+  { }
+
+  void setup()
+  {
+    if (!LittleFS.begin())
+      log.error( "failed to mount file system" );
+
+    Config c;
+    (void)load( c );
+    log.debugf( "loaded counter is %d", c.counter );
+
+    srand( c.counter );
+    c.counter = rand();
+    log.debugf( "new counter is %d", c.counter );
+    (void)save( c );
+  }
+
+  bool save( Config &c )
+  {
+    File cf = LittleFS.open( filename, "w" ); // "wb" not allowed, apparently
+    if (!cf)
+    {
+      log.error( "cannot open config for writing" );
+      return false;
+    }
+
+    if (hdr.version < 0 or hdr.version > 1000) // debug
+      hdr.version = 0;
+    hdr.version++;
+    log.debugf( "new version is %d", hdr.version );
+
+    hdr.length = sizeof(c);
+
+    bool save_success = false;
+
+    const size_t write_rc = cf.write( (const uint8_t*)&hdr, sizeof(hdr) );
+    if (write_rc == sizeof(hdr))
+    {
+      const size_t write_rc = cf.write( (const uint8_t*)&c, hdr.length );
+      save_success = (write_rc == hdr.length);
+      if (save_success)
+        log.infof( "successfully wrote %u bytes of config", write_rc );
+      else
+        log.errorf( "wrote %u bytes, not %u, of config", write_rc, hdr.length );
+    }
+    else
+    {
+      log.errorf( "wrote %u bytes, not %u, of config", write_rc, sizeof(hdr) );
+    }
+
+    cf.close();
+
+    return save_success;
+  }
+
+  bool load( Config &c )
+  {
+    File cf = LittleFS.open( filename, "r" );
+    if (!cf)
+    {
+      log.error( "cannot open config for reading" );
+      return false;
+    }
+
+    bool load_success = false;
+
+    const size_t read_rc = cf.read( (uint8_t*)&hdr, sizeof(hdr) );
+    if (read_rc == sizeof(hdr))
+    {
+      log.debugf( "loaded version is %d", hdr.version );
+      log.debugf( "loaded length is %u", hdr.length );
+      if (hdr.length != sizeof(c))
+        log.warningf( "length %u does not match config size %u", hdr.length, sizeof(c) );
+          // not necessarily terminal; eg if config has changed length between versions; caveat emptor.
+
+      hdr.length = min( hdr.length, sizeof(c) );
+        // just in case the config has got shorter, don't want to overflow the structure
+
+      const size_t read_rc = cf.read( (uint8_t*)&c, hdr.length );
+      load_success = (read_rc == hdr.length);
+      if (load_success)
+        log.infof( "successfully read %u bytes of config", read_rc );
+      else
+        log.errorf( "read %u bytes, not %u, of config", read_rc, hdr.length );
+    }
+    else
+    {
+      log.errorf( "read %u bytes, not %u, of hdr", read_rc, sizeof(hdr) );
+    }
+
+    cf.close();
+
+    return load_success;
+  }
+
+private:
+  const char *filename;
+  ConfigHeader hdr;
+
+  static Logger log;
+};
+
+Configuration configuration;
+Logger Configuration::log( "CONFIG" );
+
+#endif
 
 // ----------------------------------------------------------------------------
 
@@ -574,6 +696,10 @@ void setup( )
 
   uptime.setup();
   patterns.setup();
+
+#ifdef NODE_HAS_CONFIG
+  configuration.setup();
+#endif
 
   wifi.setup();
 

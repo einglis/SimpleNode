@@ -7,6 +7,12 @@
 #define NODE_HAS_WEB_UPDATE
 //#define NODE_HAS_OTA_UPDATE
 #define NODE_HAS_INPUTS
+#define NODE_HAS_CONFIG
+
+struct Config
+{
+  int counter;
+};
 
 // outputs
 #define PIXELS_PIN 13
