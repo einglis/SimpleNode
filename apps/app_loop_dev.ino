@@ -62,9 +62,9 @@ bool app_pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32
     return false; // no update
 
   static int pos = 0;
-  pos = (pos + 1) % 6; // 6 is the true number of dev pixels
   for (auto i = 0; i < num_pixels; i++)
     pixel( i, (i == pos) ? 0x00080400 : 0x00000000 );
+  pos = (pos + 1) % 6; // 6 is the true number of dev pixels
   return true;
 }
 
