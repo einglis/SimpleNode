@@ -16,37 +16,6 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 // ----------------------------------------------------------------------------
 
-struct Loopy
-{
-  virtual void loop() = 0;
-  virtual ~Loopy() = 0;
-};
-
-Loopy::~Loopy( ) { }
-  // pure virtual destructor implementation
-
-// ------------------------------------
-
-class Loopies
-{
-public:
-  static void add( Loopy* l )
-  {
-    list.push_back( l );
-  }
-  static void exec( )
-  {
-    for ( auto l : list )
-      l->loop();
-  }
-private:
-  static std::vector< Loopy* > list; // declaration...
-};
-
-std::vector< Loopy* > Loopies::list; // ...definition
-
-// ----------------------------------------------------------------------------
-
 struct WifiObserver
 {
   virtual void wifi_up() { };
@@ -733,6 +702,4 @@ void loop( )
     loops = 0;
     last = now;
   }
-
-  Loopies::exec();
 }
