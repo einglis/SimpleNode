@@ -171,7 +171,7 @@ public:
 
     char* bp = buf;
 
-    const size_t row_len = (data_len < max_row_len) ? data_len : max_row_len;
+    const size_t row_len = min(data_len, max_row_len);
     const uint8_t* dp;
     size_t col;
 
@@ -225,7 +225,7 @@ void handle_config( AsyncWebServerRequest* request )
 {
   auto hexeroo = std::make_shared<Hexorator<16>>( (const uint8_t*)&configuration(), sizeof(AppConfig) );
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/plain",
-    [hexeroo](uint8_t *buf, size_t buf_len, size_t ) { return hexeroo->render_next( (char *)buf, buf_len ); }
+    [hexeroo]( uint8_t *buf, size_t buf_len, size_t ) { return hexeroo->render_next( (char *)buf, buf_len ); }
   );
   request->send(response);
 }
