@@ -565,8 +565,8 @@ public:
   long int epoch_time( ) { return client.getEpochTime(); }
 
   static int epoch_day( long int e )  { return (e / 86400L + 4) % 7; } // 0 == sunday
-  static int epoch_hrs( long int e )  { return (e % 86400L) / 3600; }
-  static int epoch_mins( long int e ) { return (e % 3600) / 60; }
+  static int epoch_hrs( long int e )  { return (e / 3600) % 24; }
+  static int epoch_mins( long int e ) { return (e / 60) % 60; }
   static int epoch_secs( long int e ) { return  e % 60; }
 
   virtual void wifi_up() // WifiObserver
