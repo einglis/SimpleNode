@@ -11,7 +11,7 @@
 
 // ----------------------------------------------------------------------------
 
-#define WIFI_HOSTNAME "island"
+#define WIFI_HOSTNAME "garage"
 
 #define MQTT_CLIENT "garage_client"
 #define MQTT_SUB_TOPIC "garage/cmd"
