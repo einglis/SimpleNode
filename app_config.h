@@ -4,6 +4,7 @@
 //#include "app_config_doorotron.h"
 //#include "app_config_heating.h"
 //#include "app_config_island.h"
+//#include "app_config_sonoff.h"
 
 #include "private_config.h" // not in repo...
 
