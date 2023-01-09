@@ -42,6 +42,10 @@
 #define MQTT_PUB_TOPIC "simple/status"
 #endif
 
+#ifndef PATTERN_PIN
+#define PATTERN_PIN LED_BUILTIN
+#endif
+
 #ifndef PATTERN_WIFI_DISCONNECTED
 #define PATTERN_WIFI_DISCONNECTED 0xAAAAAAAA
 #endif

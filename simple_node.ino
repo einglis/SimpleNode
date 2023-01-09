@@ -56,7 +56,7 @@ std::vector< WifiObserver* > WifiObservers::list; // ...definit
 class Patterns
 {
 public:
-  Patterns( int pin = LED_BUILTIN )
+  Patterns( int pin = PATTERN_PIN )
     : pin{ pin }
     , pattern{ 0 }
   { }
@@ -67,7 +67,7 @@ public:
 
     ticker.attach_ms( 100, [this]() {
       pattern = (pattern >> 1) | (pattern << 31); // roll right 1
-      digitalWrite( pin, ~(pattern) & 1 );
+      digitalWrite( pin, ~(pattern) & 1 ); // active low
     } );
   }
 
