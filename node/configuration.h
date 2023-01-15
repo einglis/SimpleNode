@@ -2,7 +2,7 @@
 
 #include <LittleFS.h>
 
-#include "../logging.h"
+#include "logging.h"
 
 namespace node {
 

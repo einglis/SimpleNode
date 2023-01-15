@@ -3,13 +3,13 @@
 void button_event( ButtonInput::Event e, int count ); // fwd declarations as Arduino
 void switch_event( SwitchInput::Event e, int count ); // compiler workaround
 
-Configuration& config = configuration; // gratuitous naming alias
+node::Configuration& config = configuration; // gratuitous naming alias
 
-Logger app_log( "APP" );
+node::Logger app_log( "APP" );
 
 // ----------------------------------------------------------------------------
 
-Logger input_log( "INPUTS" );
+node::Logger input_log( "INPUTS" );
 
 void button_event( ButtonInput::Event e, int count ) // called in SYS context
 {

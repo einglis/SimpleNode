@@ -5,7 +5,7 @@
 #include <Ticker.h>
 #include <WiFiUdp.h> // multiple options disambiguated by inclusion of ESP8266WiFi.h, somehow
 
-#include "../logging.h"
+#include "logging.h"
 #include "wifi_observer.h"
 
 namespace node {

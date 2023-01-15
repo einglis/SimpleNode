@@ -5,7 +5,7 @@
 #include <ESP8266WiFi.h>
 #include <Ticker.h>
 
-#include "../logging.h"
+#include "logging.h"
 #include "wifi_observer.h"
 
 namespace node {

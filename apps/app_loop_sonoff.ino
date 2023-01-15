@@ -1,7 +1,7 @@
 
 #include "inputs.h"
 
-Logger app_log( "APP" );
+node::Logger app_log( "APP" );
 
 // ----------------------------------------------------------------------------
 

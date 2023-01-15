@@ -2,7 +2,7 @@
 
 #include <Ticker.h>
 
-#include "../logging.h"
+#include "logging.h"
 
 namespace node {
 

@@ -1,5 +1,7 @@
 #pragma once
 
+namespace node {
+
 class Logger
 {
 public:
@@ -44,3 +46,5 @@ private:
     Serial.println( msg );
   }
 };
+
+} // node

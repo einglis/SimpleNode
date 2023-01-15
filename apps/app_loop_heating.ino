@@ -1,7 +1,7 @@
 
 #include "inputs.h"
 
-Logger app_log( "APP" );
+node::Logger app_log( "APP" );
 
 void switch_event( SwitchInput::Event f, const char* name );
 void switch_event( SwitchInput::Event f, const char* name ) // called in SYS context

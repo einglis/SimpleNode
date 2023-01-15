@@ -2,7 +2,8 @@
 #include "app_config.h"
 #include "build.gen.h"
 const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
-#include "logging.h"
+
+#include "node/logging.h"
 
 // ----------------------------------------------------------------------------
 
@@ -71,7 +72,7 @@ void setup( )
 
 void loop( )
 {
-  static Logger log( "LOOP" );
+  static node::Logger log( "LOOP" );
   static long last = millis();
   static int loops = 0;
 

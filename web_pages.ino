@@ -89,7 +89,7 @@ void handle_post_demo( AsyncWebServerRequest* request )
 
 #ifdef NODE_HAS_WEB_UPDATE
 
-Logger update_log( "UPDATE" );
+node::Logger update_log( "UPDATE" );
 
 void handle_update_done( AsyncWebServerRequest* request )
 {

@@ -1,8 +1,8 @@
 
 #include "inputs.h"
 
-Logger app_log( "APP" );
-Logger input_log( "INPUTS" );
+node::Logger app_log( "APP" );
+node::Logger input_log( "INPUTS" );
 
 void door_open_led( int index, bool on )
 {

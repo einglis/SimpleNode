@@ -2,7 +2,7 @@
 
 #include <ESPAsyncWebServer.h>
 
-#include "../logging.h"
+#include "logging.h"
 #include "wifi_observer.h"
 
 namespace node {
