@@ -1,17 +1,14 @@
 
-#include "inputs.h"
-void button_event( ButtonInput::Event e, int count ); // fwd declarations as Arduino
-void switch_event( SwitchInput::Event e, int count ); // compiler workaround
-
-node::Configuration& config = configuration; // gratuitous naming alias
-
-node::Logger app_log( "APP" );
+using node::ButtonInput;
+using node::SwitchInput;
+  // still need fully qualified types in function
+  // signatures due to Arduino code mangling.
 
 // ----------------------------------------------------------------------------
 
 node::Logger input_log( "INPUTS" );
 
-void button_event( ButtonInput::Event e, int count ) // called in SYS context
+void button_event( node::ButtonInput::Event e, int count ) // called in SYS context
 {
   schedule_function( [=]() {
     switch (e)
@@ -34,7 +31,7 @@ void button_event( ButtonInput::Event e, int count ) // called in SYS context
   } );
 }
 
-void switch_event( SwitchInput::Event e, int count ) // called in SYS context
+void switch_event( node::SwitchInput::Event e, int count ) // called in SYS context
 {
   schedule_function( [=]() {
     switch (e)
@@ -72,8 +69,14 @@ bool app_pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32
 
 // ----------------------------------------------------------------------------
 
+node::Configuration& config = configuration; // gratuitous naming alias
+
 ButtonInput db( [](){ return !digitalRead(BUTTON_PIN); /*active low*/ } );
 SwitchInput ds( [](){ return !digitalRead(SWITCH_PIN); /*active low*/ } );
+
+node::Logger app_log( "APP" );
+
+// ------------------------------------
 
 void app_setup( )
 {

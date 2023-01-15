@@ -3,7 +3,9 @@
 #include "build.gen.h"
 const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
+#include "node/inputs.h"
 #include "node/logging.h"
+#include "node/wifi_observer.h"
 
 // ----------------------------------------------------------------------------
 
@@ -21,8 +23,6 @@ node::Pixels pixels;
 
 #include "node/uptime.h"
 node::Uptime uptime;
-
-#include "node/wifi_observer.h"
 
 #include "node/webserver.h"
 node::Webserver web;

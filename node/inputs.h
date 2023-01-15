@@ -1,5 +1,9 @@
 #pragma once
 
+#include <Ticker.h>
+
+namespace node {
+
 class DebouncedInput
 {
 public:
@@ -170,3 +174,5 @@ private:
   int timer; // aka recent_time
   std::function< void( Event, int ) > event;
 };
+
+} // node
