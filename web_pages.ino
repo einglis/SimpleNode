@@ -240,7 +240,7 @@ static MyUpdaterHashClass muh;
 static MyUpdaterVerifyClass muv;
 #endif
 
-void register_web_pages( Webserver& web)
+void register_web_pages( node::Webserver& web)
 {
   web.add_handler( "/", HTTP_GET, webpages::handle_default );
 
