@@ -16,40 +16,7 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 // ----------------------------------------------------------------------------
 
-struct WifiObserver
-{
-  virtual void wifi_up() { };
-  virtual void wifi_down() { };
-  virtual ~WifiObserver() = 0;
-};
-
-WifiObserver::~WifiObserver( ) { }
-  // pure virtual destructor implementation
-
-// ------------------------------------
-
-class WifiObservers
-{
-public:
-  static void add( WifiObserver* wo )
-  {
-    list.push_back( wo );
-  }
-  static void wifi_up( )
-  {
-    for ( auto wo : list )
-      wo->wifi_up();
-  }
-  static void wifi_down( )
-  {
-    for ( auto wo : list )
-      wo->wifi_down();
-  }
-private:
-  static std::vector< WifiObserver* > list; // declaration...
-};
-
-std::vector< WifiObserver* > WifiObservers::list; // ...definit
+#include "node/wifi_observer.h"
 
 // ----------------------------------------------------------------------------
 
@@ -314,7 +281,7 @@ private:
     is_connected = false;
     my_ip.clear();
 
-    schedule_function( []() { WifiObservers::wifi_down(); } );
+    node::WifiObservers::wifi_down();
   }
 
   void wifi_connected( const WiFiEventStationModeConnected & )
@@ -330,7 +297,7 @@ private:
     log.infof( "got IP: %s", e.ip.toString().c_str() );
     my_ip = e.ip;
 
-    schedule_function( []() { WifiObservers::wifi_up(); } );
+    node::WifiObservers::wifi_up();
   }
 
   static Logger log;
@@ -344,7 +311,7 @@ Logger NodeWiFi::log( "WIFI" );
 #ifdef NODE_HAS_WEB
 
 class Webserver
-  : public WifiObserver
+  : public node::WifiObserver
 {
 public:
   Webserver()
@@ -354,7 +321,7 @@ public:
   void setup( )
   {
     server.onNotFound( [](auto request) { request->send( 404, "text/plain", "Not found" ); } );
-    WifiObservers::add( this );
+    node::WifiObservers::add( this );
   }
 
   void add_handler( const char* uri, WebRequestMethod method, ArRequestHandlerFunction fn, ArUploadHandlerFunction upload = nullptr )
@@ -393,7 +360,7 @@ Logger Webserver::log( "WEB" );
 #ifdef NODE_HAS_MQTT
 
 class Mqtt
-  : public WifiObserver
+  : public node::WifiObserver
 {
 public:
   Mqtt()
@@ -419,7 +386,7 @@ public:
     else
       subs.push_back( sub );
 
-    WifiObservers::add( this );
+    node::WifiObservers::add( this );
   }
 
   virtual void wifi_down( ) // WifiObserver
@@ -545,7 +512,7 @@ Logger Mqtt::log( "MQTT" );
 #ifdef NODE_HAS_NTP
 
 class Ntp
-  : public WifiObserver
+  : public node::WifiObserver
 {
 public:
   Ntp()
@@ -559,7 +526,7 @@ public:
         log.infof( "time: %s", client.getFormattedTime() );
       } );
 
-    WifiObservers::add( this );
+    node::WifiObservers::add( this );
   }
 
   long int epoch_time( ) { return client.getEpochTime(); }
