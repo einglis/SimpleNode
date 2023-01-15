@@ -16,7 +16,8 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 // ----------------------------------------------------------------------------
 
-#include "node/wifi_observer.h"
+#include "node/configuration.h"
+node::Configuration configuration;
 
 #include "node/patterns.h"
 node::Patterns patterns;
@@ -24,9 +25,7 @@ node::Patterns patterns;
 #include "node/uptime.h"
 node::Uptime uptime;
 
-#include "node/configuration.h"
-node::Configuration configuration;
-
+#include "node/wifi_observer.h"
 
 // ----------------------------------------------------------------------------
 
