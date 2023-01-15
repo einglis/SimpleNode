@@ -25,6 +25,72 @@ void switch_event( SwitchInput::Event f, const char* name ) // called in SYS con
 
 // ----------------------------------------------------------------------------
 
+Ticker crossings_ticker;
+
+struct peg
+{
+  int hh;
+  int mm;
+  bool on;
+};
+
+std::vector<peg> pegs = {
+  { 10, 00, true },
+  { 10, 30, false },
+  { 12, 32, true },
+  { 12, 32, true },
+  { 12, 33, true, },
+  { 14, 56, false }
+};
+
+std::vector<peg>::iterator it = pegs.end();
+bool pegs_changed = true;
+
+int next_hhmm = 1000;
+
+void crossings_fn( )
+{
+  static long int epoch = 30000;//ntp.epoch_time() * 60;
+  epoch+=60;
+
+  int hh = ntp.epoch_hrs( epoch );
+  int mm = ntp.epoch_mins( epoch );
+
+  app_log.debugf( "%d:%d", hh, mm );
+
+
+  if ((rand() & 0xff) == 0)
+  {
+    Serial.println("\nPegs change\n");
+    pegs_changed = true;
+  }
+
+  if (pegs_changed)
+  {
+    it = pegs.begin();
+    while (it != pegs.end() && (it->hh < hh || (it->hh == hh && it->mm < mm)))
+    {
+        Serial.printf("skipping %d:%d %s\n", it->hh, it->mm, it->on ? "ON" : "OFF" );
+        it++;
+    }
+    pegs_changed = false;
+  }
+
+  while (it != pegs.end() && it->hh == hh && it->mm == mm)
+  {
+      Serial.printf("Heating %s\n", it->on ? "ON" : "OFF" );
+      it++;
+  }
+  if (it == pegs.end())
+  {
+    Serial.println("ready for a new day");
+    it = pegs.begin();
+  }
+
+}
+
+// ----------------------------------------------------------------------------
+
 SwitchInput  stat_hw( [](){ return digitalRead( STAT_HW_PIN  ); } );
 SwitchInput stat_ch1( [](){ return digitalRead( STAT_CH1_PIN ); } );
 SwitchInput stat_ch2( [](){ return digitalRead( STAT_CH2_PIN ); } );
@@ -58,6 +124,8 @@ void app_setup( )
     digitalWrite( DEMAND_CH3_PIN, c & 8 );
     c++;
   } );
+
+  crossings_ticker.attach_scheduled( 0.1, crossings_fn );
 }
 
 // ----------------------------------------------------------------------------
