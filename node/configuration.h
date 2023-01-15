@@ -1,5 +1,7 @@
 #pragma once
 
+#include <LittleFS.h>
+
 #include "../logging.h"
 
 namespace node {

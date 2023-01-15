@@ -1,10 +1,6 @@
 
-#include <Adafruit_MQTT.h>
-#include <Adafruit_MQTT_Client.h>
 #include <Adafruit_NeoPixel.h>
-#include <ESP8266WiFi.h>
 #include <ESPAsyncWebServer.h>
-#include <LittleFS.h>
 #include <NTPClient.h>
 #include <Ticker.h>
 #include <WiFiUdp.h>
