@@ -1,7 +1,4 @@
 
-#include <Adafruit_NeoPixel.h>
-#include <Ticker.h>
-
 #include "app_config.h"
 #include "build.gen.h"
 const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
@@ -18,6 +15,9 @@ node::Ntp ntp;
 #include "node/patterns.h"
 node::Patterns patterns;
 
+#include "node/pixels.h"
+node::Pixels pixels;
+
 #include "node/uptime.h"
 node::Uptime uptime;
 
@@ -26,69 +26,11 @@ node::Uptime uptime;
 #include "node/webserver.h"
 node::Webserver web;
 
-#include "node/wifi.h"
+#include "node/wifi.h" // requires node::Patterns patterns;
 node::WiFi wifi;
 
-#include "node/mqtt.h" // requires wifi
+#include "node/mqtt.h" // requires node::WiFi wifi;
 node::Mqtt mqtt;
-
-// ----------------------------------------------------------------------------
-
-#ifdef NODE_HAS_PIXELS
-
-class Pixels
-{
-public:
-  Pixels( int num_pixels = NUMPIXELS, int pin = PIXELS_PIN ) // lazy
-    : pixels( num_pixels, pin, NEO_GRB + NEO_KHZ800 )
-    , work_phase{ 0 }
-    , need_update{ false }
-    { }
-
-  void setup()
-  {
-    //pinMode( pin, OUTPUT );
-      // the Adafruit_NeoPixel constructor will have done this for us
-
-    pixels.begin(); // This initializes the NeoPixel library.
-
-    ticker.attach_ms( 50, [this](){ update(); } );
-  }
-
-  void brightness( uint8_t b )
-  {
-    pixels.setBrightness( b );
-  }
-
-private:
-  Adafruit_NeoPixel pixels;
-  Ticker ticker;
-  int work_phase;
-  bool need_update;
-
-  void update( )
-  {
-    // called in SYS context, so be quick
-
-    if (work_phase == 0)
-    {
-      need_update = app_pixels_update( pixels.numPixels(),
-        [this](uint16_t n, uint32_t c){ pixels.setPixelColor( n, c ); } );
-    }
-    else
-    {
-      if (need_update)
-        pixels.show();
-    }
-
-    work_phase = !work_phase;
-  }
-
-};
-
-Pixels pixels;
-
-#endif
 
 // ----------------------------------------------------------------------------
 
