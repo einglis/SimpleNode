@@ -71,8 +71,8 @@ bool app_pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32
 
 node::Configuration& config = configuration; // gratuitous naming alias
 
-ButtonInput db( [](){ return !digitalRead(BUTTON_PIN); /*active low*/ } );
-SwitchInput ds( [](){ return !digitalRead(SWITCH_PIN); /*active low*/ } );
+ButtonInput db( [](){ return !digitalRead( node::inputs::button_pin_n ); } );
+SwitchInput ds( [](){ return !digitalRead( node::inputs::switch_pin_n ); } );
 
 node::Logger app_log( "APP" );
 
@@ -80,12 +80,12 @@ node::Logger app_log( "APP" );
 
 void app_setup( )
 {
-  //pinMode( PIXELS_PIN, OUTPUT ); // done for us
-  pinMode( LED_1_PIN, OUTPUT );
-  pinMode( LED_2_PIN, OUTPUT );
+  //pinMode( node::outputs::pixels_pin, OUTPUT ); // done for us
+  pinMode( node::outputs::led_1_pin, OUTPUT );
+  pinMode( node::outputs::led_2_pin, OUTPUT );
 
-  pinMode( BUTTON_PIN, INPUT );
-  pinMode( SWITCH_PIN, INPUT );
+  pinMode( node::inputs::button_pin_n, INPUT );
+  pinMode( node::inputs::switch_pin_n, INPUT );
 
   db.setup( [](auto e, auto c){ button_event( e, c ); } );
   ds.setup( [](auto e, auto c){ switch_event( e, c ); } );

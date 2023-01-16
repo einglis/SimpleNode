@@ -57,13 +57,6 @@
 #define PATTERN_WIFI_GOT_IP       0xFFFFFFFE
 #endif
 
-#ifndef PIXELS_PIN
-#define PIXELS_PIN 13 // 13: dev, island
-#endif
-#ifndef NUMPIXELS
-#define NUMPIXELS 251 // deliberately stressful
-#endif
-
 #ifndef WEBSERVER_PORT
 #define WEBSERVER_PORT 80
 #endif

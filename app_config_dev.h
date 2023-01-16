@@ -12,11 +12,20 @@ struct AppConfig
   int counter;
 };
 
-// outputs
-#define PIXELS_PIN 13
-#define LED_1_PIN  14 // active high
-#define LED_2_PIN  16 // active high
+namespace node {
+  namespace outputs {
+    enum {
+      pixels_pin = 13,
+      led_1_pin  = 14,
+      led_2_pin  = 16,
+    };
+  }
+  namespace inputs {
+    enum {
+      button_pin_n =  0, // _n == active low
+      switch_pin_n = 12, // _n == active low
+    };
+  }
+}
 
-// inputs
-#define BUTTON_PIN  0 // active low
-#define SWITCH_PIN 12 // active low
+#define NUM_PIXELS 251 // deliberately stressful; dev actually only has 6

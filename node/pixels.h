@@ -8,7 +8,7 @@ namespace node {
 class Pixels
 {
 public:
-  Pixels( int num_pixels = NUMPIXELS, int pin = PIXELS_PIN ) // lazy
+  Pixels( int num_pixels, int pin )
     : pixels( num_pixels, pin, NEO_GRB + NEO_KHZ800 )
     , work_phase{ 0 }
     , need_update{ false }

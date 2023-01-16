@@ -5,7 +5,6 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 #include "node/inputs.h"
 #include "node/logging.h"
-#include "node/wifi_observer.h"
 
 // ----------------------------------------------------------------------------
 
@@ -19,7 +18,7 @@ node::Ntp ntp;
 node::Patterns patterns;
 
 #include "node/pixels.h"
-node::Pixels pixels;
+node::Pixels pixels( NUM_PIXELS, node::outputs::pixels_pin );
 
 #include "node/uptime.h"
 node::Uptime uptime;
