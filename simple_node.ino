@@ -11,6 +11,9 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 #include "node/configuration.h"
 node::Configuration< AppConfig > configuration( CONFIG_FILENAME );
 
+#include "node/mqtt.h"
+node::Mqtt mqtt;
+
 #include "node/ntp.h"
 node::Ntp ntp;
 
@@ -28,9 +31,6 @@ node::Webserver web;
 
 #include "node/wifi.h" // requires node::Patterns patterns;
 node::WiFi wifi;
-
-#include "node/mqtt.h" // requires node::WiFi wifi;
-node::Mqtt mqtt;
 
 // ----------------------------------------------------------------------------
 

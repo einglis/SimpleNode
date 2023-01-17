@@ -92,7 +92,7 @@ private:
     log.info( F("connected") );
 
     char buf[32]; // 16 bytes of ipv4 + some
-    sprintf( buf, "online %s", wifi.ip().toString().c_str() );
+    sprintf( buf, "online %s", my_wifi.localIP().toString().c_str() );
     publish( buf );
 
     ping_ticker.attach_scheduled( MQTT_KEEPALIVE, [this]() {
