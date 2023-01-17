@@ -47,7 +47,7 @@ void setup( )
   patterns.setup();
 
 #ifdef NODE_HAS_CONFIG
-  configuration.setup();
+  configuration.begin();
 #endif
 
   wifi.setup();

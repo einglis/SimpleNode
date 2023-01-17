@@ -30,7 +30,7 @@ public:
     , log{ config_log }
   { }
 
-  void setup()
+  void begin()
   {
     if (!LittleFS.begin())
       log.error( "failed to mount file system" );
