@@ -69,7 +69,7 @@ bool app_pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32
 
 // ----------------------------------------------------------------------------
 
-node::Configuration& config = configuration; // gratuitous naming alias
+auto& config = configuration; // gratuitous naming alias
 
 ButtonInput db( [](){ return !digitalRead( node::inputs::button_pin_n ); } );
 SwitchInput ds( [](){ return !digitalRead( node::inputs::switch_pin_n ); } );

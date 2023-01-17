@@ -9,7 +9,7 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 // ----------------------------------------------------------------------------
 
 #include "node/configuration.h"
-node::Configuration configuration;
+node::Configuration< AppConfig > configuration( CONFIG_FILENAME );
 
 #include "node/ntp.h"
 node::Ntp ntp;

@@ -18,12 +18,16 @@ union ConfigHeader
 
 // ------------------------------------
 
+Logger config_log( "CONFIG" );
+
+template< typename AppConfig >
 class Configuration
 {
 public:
   Configuration( const char* filename = CONFIG_FILENAME )
     : filename{ filename }
     , valid{ false }
+    , log{ config_log }
   { }
 
   void setup()
@@ -132,11 +136,7 @@ private:
   AppConfig app_config;
   bool valid;
 
-  static Logger log;
+  Logger& log;
 };
-
-// ------------------------------------
-
-Logger Configuration::log( "CONFIG" );
 
 } //node
