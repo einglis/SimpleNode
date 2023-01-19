@@ -16,11 +16,11 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 // ----------------------------------------------------------------------------
 
-node::Configuration< AppConfig > configuration( CONFIG_FILENAME );
+node::Configuration< app::Config > configuration( CONFIG_FILENAME );
 node::Mqtt mqtt;
 node::Ntp ntp;
-node::WifiPatterns patterns( node::outputs::status_pin );
-node::Pixels pixels( node::outputs::pixels_pin, NUM_PIXELS, app_pixels_update );
+node::WifiPatterns patterns( app::outputs::status_pin );
+node::Pixels pixels( app::outputs::pixels_pin, NUM_PIXELS, app::pixels_update );
 node::Uptime uptime;
 node::Webserver web;
 node::WiFi wifi;
