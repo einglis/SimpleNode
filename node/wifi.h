@@ -45,7 +45,6 @@ public:
     handlers.push_back( ::WiFi.onStationModeGotIP( [this](auto e){ wifi_got_ip(e); } ) );
 
     log.info( F("inital connection...") );
-    patterns.set( PATTERN_WIFI_DISCONNECTED );
 
     ::WiFi.mode( WIFI_STA );
     ::WiFi.begin( WIFI_SSID, WIFI_PASSWD );
@@ -65,7 +64,6 @@ private:
     if (!is_connected) // this function tends to get called over-and-over
       return
 
-    patterns.set( PATTERN_WIFI_DISCONNECTED );
     log.info( F("disconnected") );
     is_connected = false;
     my_ip.clear();
@@ -78,7 +76,6 @@ private:
 
   void wifi_connected( const WiFiEventStationModeConnected & )
   {
-    patterns.set( PATTERN_WIFI_CONNECTED );
     log.info( F("connected") );
     is_connected = true;
 
@@ -90,7 +87,6 @@ private:
 
   void wifi_got_ip( const WiFiEventStationModeGotIP &e )
   {
-    patterns.set( PATTERN_WIFI_GOT_IP );
     log.infof( "got IP: %s", e.ip.toString().c_str() );
     my_ip = e.ip;
 

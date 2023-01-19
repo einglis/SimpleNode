@@ -11,14 +11,14 @@ const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 #include "node/configuration.h"
 node::Configuration< AppConfig > configuration( CONFIG_FILENAME );
 
-#include "node/patterns.h"
-node::Patterns patterns; // needs to precede anything that includes "node/wifi.h"
-
 #include "node/mqtt.h"
 node::Mqtt mqtt;
 
 #include "node/ntp.h"
 node::Ntp ntp;
+
+#include "node/patterns.h"
+node::WifiPatterns patterns( PATTERN_PIN );
 
 #include "node/pixels.h"
 node::Pixels pixels( NUM_PIXELS, node::outputs::pixels_pin );
@@ -29,7 +29,7 @@ node::Uptime uptime;
 #include "node/webserver.h"
 node::Webserver web;
 
-#include "node/wifi.h" // requires node::Patterns patterns;
+#include "node/wifi.h"
 node::WiFi wifi;
 
 // ----------------------------------------------------------------------------
@@ -44,7 +44,7 @@ void setup( )
   Serial.println( ESP.getResetReason() );
 
   uptime.setup();
-  patterns.setup();
+  patterns.begin();
 
 #ifdef NODE_HAS_CONFIG
   configuration.begin();
