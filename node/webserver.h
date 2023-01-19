@@ -15,7 +15,7 @@ public:
     : server( WEBSERVER_PORT/*lazy*/ )
     { }
 
-  void setup( )
+  void begin( )
   {
     server.onNotFound( [](auto request) { request->send( 404, "text/plain", "Not found" ); } );
     wifi_observer_register( *this );

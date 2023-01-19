@@ -33,7 +33,7 @@ public:
     , log{ wifi_log }
     { }
 
-  void setup()
+  void begin()
   {
     log.infof( "MAC: %s", ::WiFi.macAddress().c_str() );
 

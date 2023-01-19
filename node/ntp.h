@@ -18,7 +18,7 @@ public:
     : client( my_wifi, NTP_HOST/*lazy*/ )
   { }
 
-  void setup( int report_interval = 0 )
+  void begin( int report_interval = 0 )
   {
     if (report_interval)
       report_ticker.attach_scheduled( report_interval, [this](){

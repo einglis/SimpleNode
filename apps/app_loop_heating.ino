@@ -103,9 +103,9 @@ void app_setup( )
   pinMode( STAT_CH1_PIN, INPUT );
   pinMode( STAT_CH2_PIN, INPUT );
 
-   stat_hw.setup( [](SwitchInput::Event f, int){ switch_event( f, "Hot Water Stat" ); } );
-  stat_ch1.setup( [](SwitchInput::Event f, int){ switch_event( f, "Heating 1 Stat" ); } );
-  stat_ch2.setup( [](SwitchInput::Event f, int){ switch_event( f, "Heating 2 Stat" ); } );
+   stat_hw.begin( [](SwitchInput::Event f, int){ switch_event( f, "Hot Water Stat" ); } );
+  stat_ch1.begin( [](SwitchInput::Event f, int){ switch_event( f, "Heating 1 Stat" ); } );
+  stat_ch2.begin( [](SwitchInput::Event f, int){ switch_event( f, "Heating 2 Stat" ); } );
 
    stat_hw.update_debounce_ms( 100 ); // thermostat inputs will probably be
   stat_ch1.update_debounce_ms( 100 ); // quite clean, but we can afford to

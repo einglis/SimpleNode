@@ -14,7 +14,7 @@ public:
     , need_update{ false }
     { }
 
-  void setup()
+  void begin()
   {
     //pinMode( pin, OUTPUT );
       // the Adafruit_NeoPixel constructor will have done this for us

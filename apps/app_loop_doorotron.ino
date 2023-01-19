@@ -41,9 +41,9 @@ public:
     pinMode( switch_pin, INPUT );
   }
 
-  void setup( )
+  void begin( )
   {
-    switch_in.setup( [this](SwitchInput::Event f, int){ switch_event( f ); } );
+    switch_in.begin( [this](SwitchInput::Event f, int){ switch_event( f ); } );
     switch_in.update_debounce_ms( 100 ); // potentially noisy inputs so be conservative
 
     bip_ticker.attach_ms_scheduled( 500, [this](){ bip_wrangler(); } );
@@ -140,8 +140,8 @@ void app_setup( )
   pinMode( LED_1_PIN, OUTPUT );
   pinMode( LED_2_PIN, OUTPUT );
 
-  a.setup();
-  b.setup();
+  a.begin();
+  b.begin();
 }
 
 // ----------------------------------------------------------------------------

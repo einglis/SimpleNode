@@ -18,7 +18,7 @@ public:
     : client( &my_wifi, MQTT_HOST, MQTT_PORT, MQTT_CLIENT, ""/*key*/) // lazy config
     { }
 
-  void setup( )
+  void begin( )
   {
     const bool will_rc = client.will( MQTT_PUB_TOPIC, "offline" );
     if (!will_rc)

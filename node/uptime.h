@@ -13,7 +13,7 @@ public:
     : counter{ 0 }
   { }
 
-  void setup( )
+  void begin( )
   {
     update_ticker.attach( 1, [this](){ counter++; } );
     report_ticker.attach( 6, [this](){ report(); } );

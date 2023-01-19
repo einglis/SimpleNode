@@ -87,8 +87,8 @@ void app_setup( )
   pinMode( node::inputs::button_pin_n, INPUT );
   pinMode( node::inputs::switch_pin_n, INPUT );
 
-  db.setup( [](auto e, auto c){ button_event( e, c ); } );
-  ds.setup( [](auto e, auto c){ switch_event( e, c ); } );
+  db.begin( [](auto e, auto c){ button_event( e, c ); } );
+  ds.begin( [](auto e, auto c){ switch_event( e, c ); } );
 
   mqtt.on( "", [](auto, auto){ app_log.infof( "mqtt message" ); } );
 

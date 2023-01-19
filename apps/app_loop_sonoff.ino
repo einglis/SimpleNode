@@ -55,7 +55,7 @@ ButtonInput button( [](){ return !digitalRead( BUTTON_PIN ); } ); // active low
 void app_setup( )
 {
   pinMode( BUTTON_PIN, INPUT );
-  button.setup( [](auto e, auto c){ button_event( e, c ); } );
+  button.begin( [](auto e, auto c){ button_event( e, c ); } );
 
   pinMode( LED_PIN, OUTPUT );
   pinMode( RELAY_PIN, OUTPUT );

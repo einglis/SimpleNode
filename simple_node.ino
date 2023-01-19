@@ -43,26 +43,26 @@ void setup( )
   Serial.println( Version );
   Serial.println( ESP.getResetReason() );
 
-  uptime.setup();
+  uptime.begin();
   patterns.begin();
 
 #ifdef NODE_HAS_CONFIG
   configuration.begin();
 #endif
 
-  wifi.setup();
+  wifi.begin();
 
 #ifdef NODE_HAS_NTP
-  ntp.setup( 11 /*report interval in seconds*/ );
+  ntp.begin( 11 /*report interval in seconds*/ );
 #endif
 #ifdef NODE_HAS_MQTT
-  mqtt.setup( );
+  mqtt.begin( );
 #endif
 #ifdef NODE_HAS_PIXELS
-  pixels.setup();
+  pixels.begin();
 #endif
 #ifdef NODE_HAS_WEB
-  web.setup();
+  web.begin();
   register_web_pages( web );
 #endif
 

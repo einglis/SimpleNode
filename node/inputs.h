@@ -29,7 +29,7 @@ protected:
       }
     }
 
-  void setup()
+  void begin()
   {
     ticker.attach_ms( 1, [this](){ poll(); } );
   }
@@ -74,10 +74,10 @@ public:
 
   enum Event { Press = 1, HoldShort, HoldLong, Final };
 
-  void setup( std::function<void( Event, int )> fn )
+  void begin( std::function<void( Event, int )> fn )
   {
     event = fn;
-    DebouncedInput::setup();
+    DebouncedInput::begin();
   }
 
 private:
@@ -138,10 +138,10 @@ public:
 
   enum Event{ FlipOpen = 1, FlipClose, Final };
 
- void setup( std::function<void( Event, int )> fn )
+ void begin( std::function<void( Event, int )> fn )
   {
     event = fn;
-    DebouncedInput::setup();
+    DebouncedInput::begin();
   }
 
 private:
