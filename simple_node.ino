@@ -20,7 +20,7 @@ node::Configuration< AppConfig > configuration( CONFIG_FILENAME );
 node::Mqtt mqtt;
 node::Ntp ntp;
 node::WifiPatterns patterns( node::outputs::status_pin );
-node::Pixels pixels( NUM_PIXELS, node::outputs::pixels_pin );
+node::Pixels pixels( node::outputs::pixels_pin, NUM_PIXELS, app_pixels_update );
 node::Uptime uptime;
 node::Webserver web;
 node::WiFi wifi;

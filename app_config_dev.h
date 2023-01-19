@@ -23,3 +23,4 @@ namespace node {
 }
 
 #define NUM_PIXELS 251 // deliberately stressful; dev actually only has 6
+bool app_pixels_update( uint16_t num_pixels, std::function< void(uint16_t n, uint32_t c) > pixel_fn );

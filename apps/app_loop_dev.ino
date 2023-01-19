@@ -53,7 +53,7 @@ void switch_event( node::SwitchInput::Event e, int count ) // called in SYS cont
 
 // ----------------------------------------------------------------------------
 
-bool app_pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32_t)> pixel )
+bool app_pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32_t)> pixel_fn )
 {
   static int rate_limit = 0;
   rate_limit = (rate_limit + 1) % 10;
@@ -62,7 +62,7 @@ bool app_pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32
 
   static int pos = 0;
   for (auto i = 0; i < num_pixels; i++)
-    pixel( i, (i == pos) ? 0x00080400 : 0x00000000 );
+    pixel_fn( i, (i == pos) ? 0x00080400 : 0x00000000 );
   pos = (pos + 1) % 6; // 6 is the true number of dev pixels
   return true;
 }

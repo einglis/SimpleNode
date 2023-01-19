@@ -8,9 +8,14 @@ namespace node {
 class Pixels
 {
 public:
-  Pixels( int num_pixels, int pin )
+  typedef std::function< bool( uint16_t num_pixels, std::function< void(uint16_t n, uint32_t c) > pixel_fn ) > update_fn_t;
+    // a function called to update any/all pixels via multiple calls to the 'pixel_fn' callback.
+    // returns true if any pixel needs an update; false if no pixels need to be updated.
+
+  Pixels( int pin, int num_pixels, update_fn_t update_fn )
     : pixels( num_pixels, pin, NEO_GRB + NEO_KHZ800 )
     , work_phase{ 0 }
+    , update_fn{ update_fn }
     , need_update{ false }
     { }
 
@@ -33,6 +38,7 @@ private:
   Adafruit_NeoPixel pixels;
   Ticker ticker;
   int work_phase;
+  update_fn_t update_fn;
   bool need_update;
 
   void update( )
@@ -41,7 +47,7 @@ private:
 
     if (work_phase == 0)
     {
-      need_update = app_pixels_update( pixels.numPixels(),
+      need_update = update_fn( pixels.numPixels(),
         [this](uint16_t n, uint32_t c){ pixels.setPixelColor( n, c ); } );
     }
     else

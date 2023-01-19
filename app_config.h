@@ -69,5 +69,3 @@
 
 void app_setup();
 void app_loop();
-
-bool app_pixels_update( uint16_t num_pixels, std::function< void(uint16_t n, uint32_t c) >pixel );
