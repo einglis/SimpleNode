@@ -3,15 +3,33 @@
 #include <ESP8266WiFi.h>
 
 #include "logging.h"
-#include "wifi_observer.h"
 
 namespace node {
+
+Logger wifi_log( "WIFI" );
+
+// ------------------------------------
+
+struct WifiObserver
+{
+  virtual void wifi_got_ip( IPAddress ) { };
+  virtual void wifi_down() { };
+
+  void wifi_observer_register( WifiObserver& );
+  virtual ~WifiObserver() = 0;
+};
+
+WifiObserver::~WifiObserver( ) { }
+  // pure virtual destructor implementation
+
+// ------------------------------------
 
 class WiFi
 {
 public:
   WiFi( )
     : is_connected{ false }
+    , log{ wifi_log }
     { }
 
   void setup()
@@ -51,7 +69,10 @@ private:
     is_connected = false;
     my_ip.clear();
 
-    node::WifiObservers::wifi_down();
+    schedule_function( []() { // decouple schedulling, just in case.
+      for ( WifiObserver& o : observers )
+        o.wifi_down();
+    } );
   }
 
   void wifi_connected( const WiFiEventStationModeConnected & )
@@ -67,12 +88,24 @@ private:
     log.infof( "got IP: %s", e.ip.toString().c_str() );
     my_ip = e.ip;
 
-    node::WifiObservers::wifi_up();
+    schedule_function( [e]() { // decouple schedulling, just in case.
+      for ( WifiObserver& o : observers )
+        o.wifi_got_ip( e.ip );
+    } );
   }
 
-  static Logger log;
+  Logger& log;
+
+  static std::vector< std::reference_wrapper< WifiObserver > > observers; // declaration...
+  friend void WifiObserver::wifi_observer_register( WifiObserver& );
 };
 
-Logger WiFi::log( "WIFI" );
+// ------------------------------------
+
+std::vector< std::reference_wrapper< WifiObserver > > WiFi::observers; // ...definition
+void WifiObserver::wifi_observer_register( WifiObserver& o )
+{
+  WiFi::observers.push_back( o );
+}
 
 } // node

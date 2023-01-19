@@ -6,7 +6,7 @@
 #include <Ticker.h>
 
 #include "logging.h"
-#include "wifi_observer.h"
+#include "wifi.h"
 
 namespace node {
 
@@ -37,7 +37,7 @@ public:
     else
       subs.push_back( sub );
 
-    node::WifiObservers::add( this );
+    wifi_observer_register( *this );
   }
 
   virtual void wifi_down( ) // WifiObserver
@@ -49,7 +49,7 @@ public:
     mqtt_disconnected();
   }
 
-  virtual void wifi_up( ) // WifiObserver
+  virtual void wifi_got_ip( IPAddress ) // WifiObserver
   {
     log.info( F("starting") );
     poll();

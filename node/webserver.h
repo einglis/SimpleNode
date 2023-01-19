@@ -3,7 +3,7 @@
 #include <ESPAsyncWebServer.h>
 
 #include "logging.h"
-#include "wifi_observer.h"
+#include "wifi.h"
 
 namespace node {
 
@@ -18,7 +18,7 @@ public:
   void setup( )
   {
     server.onNotFound( [](auto request) { request->send( 404, "text/plain", "Not found" ); } );
-    node::WifiObservers::add( this );
+    wifi_observer_register( *this );
   }
 
   void add_handler( const char* uri, WebRequestMethod method, ArRequestHandlerFunction fn, ArUploadHandlerFunction upload = nullptr )
@@ -32,7 +32,7 @@ public:
     server.end();
   }
 
-  virtual void wifi_up() // WifiObserver
+  virtual void wifi_got_ip( IPAddress ) // WifiObserver
   {
     log.info( F("starting") );
     server.begin();

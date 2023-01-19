@@ -6,7 +6,7 @@
 #include <WiFiUdp.h> // multiple options disambiguated by inclusion of ESP8266WiFi.h, somehow
 
 #include "logging.h"
-#include "wifi_observer.h"
+#include "wifi.h"
 
 namespace node {
 
@@ -25,7 +25,7 @@ public:
         log.infof( "time: %s", client.getFormattedTime() );
       } );
 
-    node::WifiObservers::add( this );
+    wifi_observer_register( *this );
   }
 
   long int epoch_time( ) { return client.getEpochTime(); }
@@ -35,7 +35,7 @@ public:
   static int epoch_mins( long int e ) { return (e / 60) % 60; }
   static int epoch_secs( long int e ) { return  e % 60; }
 
-  virtual void wifi_up() // WifiObserver
+  virtual void wifi_got_ip( IPAddress ) // WifiObserver
   {
     client.begin();
     refresh();
