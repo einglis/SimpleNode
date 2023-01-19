@@ -15,6 +15,7 @@ struct AppConfig
 namespace node {
   namespace outputs {
     enum {
+      status_pin = LED_BUILTIN, // 2 on devboard
       pixels_pin = 13,
       led_1_pin  = 14,
       led_2_pin  = 16,

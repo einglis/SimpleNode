@@ -18,7 +18,7 @@ node::Mqtt mqtt;
 node::Ntp ntp;
 
 #include "node/patterns.h"
-node::WifiPatterns patterns( PATTERN_PIN );
+node::WifiPatterns patterns( node::outputs::status_pin );
 
 #include "node/pixels.h"
 node::Pixels pixels( NUM_PIXELS, node::outputs::pixels_pin );
