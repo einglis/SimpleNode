@@ -13,6 +13,7 @@ Logger wifi_log( "WIFI" );
 struct WifiObserver
 {
   virtual void wifi_got_ip( IPAddress ) { };
+  virtual void wifi_up() { };
   virtual void wifi_down() { };
 
   void wifi_observer_register( WifiObserver& );
@@ -80,6 +81,11 @@ private:
     patterns.set( PATTERN_WIFI_CONNECTED );
     log.info( F("connected") );
     is_connected = true;
+
+    schedule_function( []() { // decouple schedulling, just in case.
+      for ( WifiObserver& o : observers )
+        o.wifi_up();
+    } );
   }
 
   void wifi_got_ip( const WiFiEventStationModeGotIP &e )
