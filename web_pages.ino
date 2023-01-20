@@ -1,13 +1,15 @@
 
+#define NODE_HAS_WEB_UPDATE // temporary fudge
+
 namespace webpages {
 
 void handle_default( AsyncWebServerRequest* request )
 {
 String message;
-message += "Build ";
+message += WIFI_HOSTNAME;
+message += "\n\nBuild ";
 message += Version;
-message += "\n";
-message += "Uptime ";
+message += "\nUptime ";
 message += uptime.secs();
 message += " seconds\n";
 
