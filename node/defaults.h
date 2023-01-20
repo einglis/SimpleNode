@@ -1,14 +1,6 @@
 #pragma once
 
-#include "app_config_dev.h"
-//#include "app_config_doorotron.h"
-//#include "app_config_heating.h"
-//#include "app_config_island.h"
-//#include "app_config_sonoff.h"
-
-#include "private_config.h" // not in repo...
-
-// ----------------------------------------------------------------------------
+#include "../private_config.h" // not in repository
 
 #ifndef WIFI_SSID
 #define WIFI_SSID PRIVATE_WIFI_SSID
@@ -64,8 +56,3 @@
 #ifndef CONFIG_FILENAME
 #define CONFIG_FILENAME "/node_config.bin"
 #endif
-
-// ----------------------------------------------------------------------------
-
-void app_setup();
-void app_loop();

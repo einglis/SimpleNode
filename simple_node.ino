@@ -3,6 +3,7 @@
 #include "build.gen.h"
 const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
+#include "node/defaults.h" // needs to come first for now
 #include "node/configuration.h"
 #include "node/inputs.h"
 #include "node/logging.h"
