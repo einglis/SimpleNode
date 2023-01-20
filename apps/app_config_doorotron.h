@@ -1,25 +1,31 @@
 #pragma once
 
-#define NODE_HAS_MQTT  // ~9 kHz cost
-#define NODE_HAS_WEB
-#define NODE_HAS_WEB_UPDATE
-
 // ----------------------------------------------------------------------------
 
-#define WIFI_HOSTNAME "garage"
+#define WIFI_HOSTNAME "doorotron"
 
-#define MQTT_CLIENT "garage_client"
+#define MQTT_CLIENT "doorotron"
 #define MQTT_SUB_TOPIC "garage/cmd"
 #define MQTT_PUB_TOPIC "garage/status"
 
 // ----------------------------------------------------------------------------
 
-// outputs
-#define LED_1_PIN     5 // nodeMCU D1
-#define LED_2_PIN     4 // nodeMCU D2
-#define BUTTON_A_PIN 14 // nodeMCU D5
-#define BUTTON_B_PIN 13 // nodeMCU D7
+namespace app {
 
-//inputs
-#define SWITCH_A_PIN 16 // nodeMCU D0
-#define SWITCH_B_PIN 12 // nodeMCU D6
+namespace outputs {
+  enum {
+    status_pin = LED_BUILTIN, // nodeMCU D4 (aka 2)
+    led_1_pin = 5, // nodeMCU D1
+    led_2_pin = 4, // nodeMCU D2
+    button_a_pin = 14, // nodeMCU D5
+    button_b_pin = 13, // nodeMCU D7
+  };
+}
+namespace inputs {
+  enum {
+    switch_a_pin = 16, // nodeMCU D0
+    switch_b_pin = 12, // nodeMCU D6
+  };
+}
+
+} // app

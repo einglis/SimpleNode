@@ -1,15 +1,14 @@
 
-#include "inputs.h"
-
 node::Logger app_log( "APP" );
-node::Logger input_log( "INPUTS" );
+
+// ----------------------------------------------------------------------------
 
 void door_open_led( int index, bool on )
 {
   static int state = 0;
   if (on) state |=  (1 << index);
   else    state &= ~(1 << index);
-  digitalWrite( LED_1_PIN, state );
+  digitalWrite( app::outputs::led_1_pin, state );
 }
 
 void bipping_led( int index, bool on )
@@ -17,7 +16,7 @@ void bipping_led( int index, bool on )
   static int state = 0;
   if (on) state |=  (1 << index);
   else    state &= ~(1 << index);
-  digitalWrite( LED_2_PIN, state );
+  digitalWrite( app::outputs::led_2_pin, state );
 }
 
 // ----------------------------------------------------------------------------
@@ -29,8 +28,7 @@ public:
     : name{ name }
     , switch_pin{ switch_pin }
     , button_pin{ button_pin }
-    , switch_in{ [switch_pin](){ return !digitalRead( switch_pin ); } }
-        // the switch input is active high, but the logic from the door is active low.
+    , switch_in{ [switch_pin](){ return digitalRead( switch_pin ); } }
     , is_open{ false }
     , bips_requested{ 0 }
     , bips_performed{ 0 }
@@ -43,7 +41,7 @@ public:
 
   void begin( )
   {
-    switch_in.begin( [this](SwitchInput::Event f, int){ switch_event( f ); } );
+    switch_in.begin( [this](node::SwitchInput::Event f, int){ switch_event( f ); } );
     switch_in.update_debounce_ms( 100 ); // potentially noisy inputs so be conservative
 
     bip_ticker.attach_ms_scheduled( 500, [this](){ bip_wrangler(); } );
@@ -51,26 +49,26 @@ public:
   }
 
 private:
-  void switch_event( SwitchInput::Event f ) // called in SYS context
+  void switch_event( node::SwitchInput::Event f ) // called in SYS context
   {
     schedule_function( [this, f]() {
       char buf[32];
 
       switch (f)
       {
-        case SwitchInput::FlipOpen:
+        case node::SwitchInput::FlipOpen:
             is_open = true;
             door_open_led( index, true );
             sprintf( buf, "%s open", name );
-            input_log.debugf( buf );
+            app_log.debugf( buf );
             mqtt.publish( buf );
             break;
 
-        case SwitchInput::FlipClose:
+        case node::SwitchInput::FlipClose:
             is_open = false;
             door_open_led( index, false );
             sprintf( buf, "%s closed", name );
-            input_log.debugf( buf );
+            app_log.debugf( buf );
             mqtt.publish( buf );
             break;
 
@@ -115,7 +113,7 @@ private:
   const char* name;
   const int switch_pin;
   const int button_pin;
-  SwitchInput switch_in;
+  node::SwitchInput switch_in;
   bool is_open;
 
   Ticker bip_ticker;
@@ -132,13 +130,13 @@ int Door::next_index = 0;
 
 // ----------------------------------------------------------------------------
 
-Door a( "doorA", SWITCH_A_PIN, BUTTON_A_PIN );
-Door b( "doorB", SWITCH_B_PIN, BUTTON_B_PIN );
+Door a( "doorA", app::inputs::switch_a_pin, app::outputs::button_a_pin );
+Door b( "doorB", app::inputs::switch_b_pin, app::outputs::button_b_pin );
 
 void app_setup( )
 {
-  pinMode( LED_1_PIN, OUTPUT );
-  pinMode( LED_2_PIN, OUTPUT );
+  pinMode( app::outputs::led_1_pin, OUTPUT );
+  pinMode( app::outputs::led_2_pin, OUTPUT );
 
   a.begin();
   b.begin();
