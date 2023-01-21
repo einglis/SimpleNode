@@ -8,6 +8,9 @@ const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 #include <simple_node.h>
 
+#include "pages/default.h"
+#include "pages/update.h"
+
 // ----------------------------------------------------------------------------
 
 node::Mqtt mqtt;
@@ -39,8 +42,10 @@ void setup( )
 
   wifi.begin();
   mqtt.begin( );
+
+  webpages::register_default( web, uptime );
+  webpages::register_update( web );
   web.begin();
-//  register_web_pages( web ); // move to app_setup?
 
   pinMode( app::outputs::led_1_pin, OUTPUT );
   pinMode( app::outputs::led_2_pin, OUTPUT );
