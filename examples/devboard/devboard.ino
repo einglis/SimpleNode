@@ -1,9 +1,10 @@
 
 #include "app_config.h"
-#include "build.gen.h"
+
+#include <build.gen.h>
 const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
-#include "simple_node.h"
+#include <simple_node.h>
 
 // ----------------------------------------------------------------------------
 
@@ -37,7 +38,7 @@ void setup( )
   ntp.begin( 11 /*report interval in seconds*/ );
   mqtt.begin( );
   web.begin();
-  register_web_pages( web ); // move to app_setup?
+//  register_web_pages( web ); // move to app_setup?
 
   app_setup();
 }
