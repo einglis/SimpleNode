@@ -5,6 +5,7 @@ namespace app {
 struct Config
 {
   int counter;
+  uint8_t fish[64];
 };
 
 namespace outputs {
