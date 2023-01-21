@@ -6,6 +6,7 @@ using node::SwitchInput;
 
 // ----------------------------------------------------------------------------
 
+node::Logger app_log( "APP" );
 node::Logger input_log( "INPUTS" );
 
 void button_event( node::ButtonInput::Event e, int count ) // called in SYS context
@@ -77,8 +78,6 @@ auto& config = configuration; // gratuitous naming alias
 
 ButtonInput db( [](){ return !digitalRead( app::inputs::button_pin_n ); } );
 SwitchInput ds( [](){ return !digitalRead( app::inputs::switch_pin_n ); } );
-
-node::Logger app_log( "APP" );
 
 // ------------------------------------
 
