@@ -1,5 +1,10 @@
 #pragma once
 
+#include "build.gen.h"
+namespace node {
+const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
+};
+
 #include "node/defaults.h" // needs to come first for now
 
 #include "node/configuration.h"
