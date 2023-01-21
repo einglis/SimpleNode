@@ -1,7 +1,11 @@
 
 #include "app_config.h"
-
 #include "simple_node.h"
+
+#include "pages/config.h"
+#include "pages/default.h"
+#include "pages/demos.h"
+#include "pages/update.h"
 
 // ----------------------------------------------------------------------------
 
@@ -34,8 +38,12 @@ void setup( )
   wifi.begin();
   ntp.begin( 11 /*report interval in seconds*/ );
   mqtt.begin( );
+
+  webpages::register_default( web, uptime );
+  webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );
+  webpages::register_demos( web );
+  webpages::register_update( web );
   web.begin();
-  register_web_pages( web ); // move to app_setup?
 
   app_setup();
 }
