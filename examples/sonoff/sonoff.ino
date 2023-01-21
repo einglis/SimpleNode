@@ -1,5 +1,22 @@
 
-#include "inputs.h"
+#include "app_config.h"
+
+#include "build.gen.h"
+namespace app {
+const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
+};
+
+#include <simple_node.h>
+using node::ButtonInput;
+
+// ----------------------------------------------------------------------------
+
+node::Configuration< app::Config > configuration( CONFIG_FILENAME );
+node::Mqtt mqtt;
+node::WifiPatterns patterns( app::outputs::status_pin );
+node::Uptime uptime;
+node::Webserver web;
+node::WiFi wifi;
 
 node::Logger app_log( "APP" );
 
@@ -9,7 +26,7 @@ bool power_state = false;
 void set_power_state( bool new_state )
 {
   power_state = new_state;
-  digitalWrite( RELAY_PIN, power_state );
+  digitalWrite( app::outputs::relay_pin, power_state );
 }
 
 void toggle_power_state()
@@ -19,7 +36,8 @@ void toggle_power_state()
 
 // ----------------------------------------------------------------------------
 
-void button_event( ButtonInput::Event e, int count ); // (Arduino compiler workaround)
+ButtonInput button( [](){ return !digitalRead( app::inputs::button_pin_n ); } ); // active low
+
 void button_event( ButtonInput::Event e, int count ) // called in SYS context
 {
   // do this immediately for a timely response...
@@ -50,15 +68,31 @@ void button_event( ButtonInput::Event e, int count ) // called in SYS context
 
 // ----------------------------------------------------------------------------
 
-ButtonInput button( [](){ return !digitalRead( BUTTON_PIN ); } ); // active low
-
-void app_setup( )
+void setup( )
 {
-  pinMode( BUTTON_PIN, INPUT );
+  Serial.begin(115200);
+  Serial.println("");
+  Serial.println("");
+  Serial.println("");
+  Serial.println( app::build_version );
+  Serial.println( ESP.getResetReason() );
+
+  configuration.begin();
+
+  uptime.begin();
+  patterns.begin();
+
+  wifi.begin();
+  mqtt.begin( );
+  web.begin();
+//  register_web_pages( web ); // move to app_setup?
+
+
+  pinMode( app::inputs::button_pin_n, INPUT );
   button.begin( [](auto e, auto c){ button_event( e, c ); } );
 
-  pinMode( LED_PIN, OUTPUT );
-  pinMode( RELAY_PIN, OUTPUT );
+  pinMode( app::outputs::led_pin_n, OUTPUT );
+  pinMode( app::outputs::relay_pin, OUTPUT );
   set_power_state( false );
 
   mqtt.on( "on",     [](auto, auto){ set_power_state( true ); } );
@@ -66,4 +100,5 @@ void app_setup( )
   mqtt.on( "toggle", [](auto, auto){ toggle_power_state(); } );
 }
 
-// ----------------------------------------------------------------------------
+void loop( )
+{ }
