@@ -1,8 +1,10 @@
 
 #include "app_config.h"
 
-#include <build.gen.h>
-const char *Version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
+#include "build.gen.h"
+namespace app {
+const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
+};
 
 #include <simple_node.h>
 
@@ -25,7 +27,7 @@ void setup( )
   Serial.println("");
   Serial.println("");
   Serial.println("");
-  Serial.println( Version );
+  Serial.println( app::build_version );
   Serial.println( ESP.getResetReason() );
 
   configuration.begin();

@@ -8,7 +8,7 @@ void handle_default( AsyncWebServerRequest* request )
 String message;
 message += WIFI_HOSTNAME;
 message += "\n\nBuild ";
-message += Version;
+message += app::build_version;
 message += "\nUptime ";
 message += uptime.secs();
 message += " seconds\n";
