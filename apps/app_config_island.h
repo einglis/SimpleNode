@@ -1,27 +1,28 @@
 #pragma once
 
-#define NODE_HAS_PIXELS  // ~3 kHz cost
-#define NODE_HAS_NTP
-#define NODE_HAS_MQTT  // ~9 kHz cost
-#define NODE_HAS_WEB
-#define NODE_HAS_WEB_UPDATE
-
 // ----------------------------------------------------------------------------
 
 #define WIFI_HOSTNAME "island"
-
-#define PATTERN_WIFI_DISCONNECTED 0xAAAAAAAA
-#define PATTERN_WIFI_CONNECTED    0xF0F0F0F0
-#define PATTERN_WIFI_GOT_IP       0x00000000
-
-#define NUMPIXELS 251
 
 #define MQTT_CLIENT "island_client"
 #define MQTT_SUB_TOPIC "island/cmd"
 #define MQTT_PUB_TOPIC "island/status"
 
+#define PATTERN_WIFI_GOT_IP       0x00000000 // no blinking
+
 // ----------------------------------------------------------------------------
 
-// outputs
-#define PIXELS_PIN 13 // dev, island
-#define POWER_PIN  14 // dev (active high led), island (active low psu)
+namespace app {
+
+namespace outputs {
+  enum {
+    status_pin = LED_BUILTIN, // aka 2
+    pixels_pin  = 13,
+    power_pin_n = 14, // _n == active low (psu)
+  };
+}
+
+#define NUM_PIXELS 251
+bool pixels_update( uint16_t num_pixels, std::function< void(uint16_t n, uint32_t c) > pixel_fn );
+
+} // app
