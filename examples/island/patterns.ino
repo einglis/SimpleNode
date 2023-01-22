@@ -3,8 +3,8 @@ node::Logger app_log( "APP" );
 
 // ----------------------------------------------------------------------------
 
-void power_on()  { digitalWrite(app::outputs::power_pin_n, LOW);  } // active low
-void power_off() { digitalWrite(app::outputs::power_pin_n, HIGH); }
+void power_on()  { digitalWrite(app::outputs::power_pin, HIGH); }
+void power_off() { digitalWrite(app::outputs::power_pin, LOW); }
 
 // ----------------------------------------------------------------------------
 
@@ -174,7 +174,7 @@ SparklePattern sparkle_yellow( 0x010100 );
 void app_setup( )
 {
   //pinMode( node::outputs::pixels_pin, OUTPUT ); // done for us
-  pinMode( app::outputs::power_pin_n, OUTPUT );
+  pinMode( app::outputs::power_pin, OUTPUT );
   power_off();
 
   pixel_patterns.push_back( &rainbow1 );
