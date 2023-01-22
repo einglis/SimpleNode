@@ -28,7 +28,7 @@ namespace outputs {
 }
 namespace inputs {
   enum {
-    button_pin_n = 16, // _n == active_low
+    button_pin_n = 0, // _n == active_low
   };
 }
 
