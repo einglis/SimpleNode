@@ -8,6 +8,8 @@
 #define MQTT_SUB_TOPIC "heat/cmd"
 #define MQTT_PUB_TOPIC "heat/status"
 
+#define PATTERN_WIFI_GOT_IP   0x00000001
+
 // ----------------------------------------------------------------------------
 
 namespace app {
