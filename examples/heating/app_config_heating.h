@@ -1,11 +1,5 @@
 #pragma once
 
-#define NODE_HAS_NTP
-#define NODE_HAS_MQTT  // ~9 kHz cost
-#define NODE_HAS_WEB
-#define NODE_HAS_WEB_UPDATE
-#define NODE_HAS_CONFIG
-
 // ----------------------------------------------------------------------------
 
 #define WIFI_HOSTNAME "heat"
@@ -16,21 +10,28 @@
 
 // ----------------------------------------------------------------------------
 
-struct AppConfig
+namespace app {
+
+struct Config
 {
   int counter;
 };
 
-// ----------------------------------------------------------------------------
+namespace outputs {
+  enum {
+    status_pin = LED_BUILTIN, // nodeMCU D4 (aka 2)
+    demand_hw_pin  = 14, // nodeMCU D5
+    demand_ch1_pin = 12, // nodeMCU D6
+    demand_ch2_pin = 13, // nodeMCU D7
+    demand_ch3_pin = 15, // nodeMCU D8
+  };
+}
+namespace inputs {
+  enum {
+    stat_hw_pin  = 16, // nodeMCU D0
+    stat_ch1_pin =  5, // nodeMCU D1
+    stat_ch2_pin =  4, // nodeMCU D2
+  };
+}
 
-// outputs (all active high)
-#define DEMAND_HW_PIN  14 // nodeMCU D5
-#define DEMAND_CH1_PIN 12 // nodeMCU D6
-#define DEMAND_CH2_PIN 13 // nodeMCU D7
-#define DEMAND_CH3_PIN 15 // nodeMCU D8
-
-// inputs (all active high)
-#define STAT_HW_PIN    16 // nodeMCU D0
-#define STAT_CH1_PIN    5 // nodeMCU D1
-#define STAT_CH2_PIN    4 // nodeMCU D2
-
+} // app
