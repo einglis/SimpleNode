@@ -9,6 +9,10 @@ const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 #include <simple_node.h>
 using node::ButtonInput;
 
+#include "pages/config.h"
+#include "pages/default.h"
+#include "pages/update.h"
+
 // ----------------------------------------------------------------------------
 
 node::Configuration< app::Config > configuration( CONFIG_FILENAME );
@@ -84,8 +88,11 @@ void setup( )
 
   wifi.begin();
   mqtt.begin( );
+
+  webpages::register_default( web, uptime );
+  webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );
+  webpages::register_update( web );
   web.begin();
-//  register_web_pages( web ); // move to app_setup?
 
 
   pinMode( app::inputs::button_pin_n, INPUT );
