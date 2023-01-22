@@ -3,8 +3,8 @@ node::Logger app_log( "APP" );
 
 // ----------------------------------------------------------------------------
 
-void power_on()  { digitalWrite(POWER_PIN, LOW);  } // active low
-void power_off() { digitalWrite(POWER_PIN, HIGH); }
+void power_on()  { digitalWrite(app::outputs::power_pin_n, LOW);  } // active low
+void power_off() { digitalWrite(app::outputs::power_pin_n, HIGH); }
 
 // ----------------------------------------------------------------------------
 
@@ -118,7 +118,9 @@ uint32_t mix( uint32_t a, uint32_t b, unsigned int amnt)
     return x;
 }
 
-bool app_pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32_t)> pixel )
+namespace app {
+
+bool pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32_t)> pixel )
 {
   PixelPattern* pattern = pixel_patterns[ curr_pattern ];
   PixelPattern* pattern_outgoing = pixel_patterns[ prev_pattern ];
@@ -146,6 +148,8 @@ bool app_pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32
   return true;
 }
 
+} // app
+
 // ----------------------------------------------------------------------------
 
 namespace {
@@ -158,7 +162,7 @@ MonoRainbowPattern rainbow2;
 ColourRandomPattern random_colours;
 
 #include "pixel_patterns/snakes.h"
-SnakesPattern snakes( NUMPIXELS );
+SnakesPattern snakes( NUM_PIXELS );
 
 #include "pixel_patterns/sparkle.h"
 SparklePattern sparkle_white;
@@ -169,7 +173,8 @@ SparklePattern sparkle_yellow( 0x010100 );
 
 void app_setup( )
 {
-  pinMode( POWER_PIN, OUTPUT );
+  //pinMode( node::outputs::pixels_pin, OUTPUT ); // done for us
+  pinMode( app::outputs::power_pin_n, OUTPUT );
   power_off();
 
   pixel_patterns.push_back( &rainbow1 );
