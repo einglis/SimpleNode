@@ -4,8 +4,6 @@ using node::SwitchInput;
 
 // ----------------------------------------------------------------------------
 
-node::Logger app_log( "APP" );
-
 void switch_event( node::SwitchInput::Event f, const char* name ) // called in SYS context
 {
   schedule_function( [=]() {
@@ -26,6 +24,28 @@ void switch_event( node::SwitchInput::Event f, const char* name ) // called in S
 }
 
 // ----------------------------------------------------------------------------
+
+
+// off, stat_off, stat_on
+// a given output has a time component and one or more stat components, one of which is always demanding.
+struct channel
+{
+  int pin;
+  bool enabled; // time portion
+  bool active; // stat portion
+  unsigned int sensitivity;
+};
+
+static struct channel chans[] =
+{
+  { app::outputs::demand_hw_pin,  true,  false, 1 << 0 },  // HW, sensitive to HW stat
+  { app::outputs::demand_ch1_pin, true,  false, 1 << 1 },  // CH1, sensitive to CH1 stat
+  { app::outputs::demand_ch2_pin, false, false, 1 << 2 },  // CH2, sensitive to CH2 stat
+  { app::outputs::demand_ch3_pin, true,  false,    6   },  // CH3, sensitive to CH1,CH2 stats
+};
+static const size_t num_chans = sizeof(chans) / sizeof(chans[0]);
+
+
 
 Ticker crossings_ticker;
 
@@ -81,6 +101,8 @@ void crossings_fn( )
   while (it != pegs.end() && it->hh == hh && it->mm == mm)
   {
       Serial.printf("Heating %s\n", it->on ? "ON" : "OFF" );
+      //digitalWrite( app::outputs::demand_ch2_pin, it->on );
+      chans[2].enabled = it->on;
       it++;
   }
   if (it == pegs.end())
@@ -97,7 +119,25 @@ SwitchInput  stat_hw( [](){ return digitalRead( app::inputs::stat_hw_pin  ); } )
 SwitchInput stat_ch1( [](){ return digitalRead( app::inputs::stat_ch1_pin ); } );
 SwitchInput stat_ch2( [](){ return digitalRead( app::inputs::stat_ch2_pin ); } );
 
+inline uint32_t rr1 (uint32_t x) { return (x << 31) | (x >> 1); } // roll right one
+
 Ticker test_ticker;
+Ticker t1;
+
+
+void update( node::SwitchInput::Event f, unsigned int mask )
+{
+  for (size_t i = 0; i < num_chans; i++)
+  {
+    if (chans[i].sensitivity & mask)
+    {
+      if (f == SwitchInput::FlipClose)
+        chans[i].active = true;
+      else if (f == SwitchInput::FlipOpen)
+        chans[i].active = false;
+    }
+  }
+}
 
 void app_setup( )
 {
@@ -105,9 +145,9 @@ void app_setup( )
   pinMode( app::inputs::stat_ch1_pin, INPUT );
   pinMode( app::inputs::stat_ch2_pin, INPUT );
 
-   stat_hw.begin( [](SwitchInput::Event f, int){ switch_event( f, "Hot Water Stat" ); } );
-  stat_ch1.begin( [](SwitchInput::Event f, int){ switch_event( f, "Heating 1 Stat" ); } );
-  stat_ch2.begin( [](SwitchInput::Event f, int){ switch_event( f, "Heating 2 Stat" ); } );
+   stat_hw.begin( [](SwitchInput::Event f, int){ switch_event( f, "Hot Water Stat" ); update(f,1); } );
+  stat_ch1.begin( [](SwitchInput::Event f, int){ switch_event( f, "Heating 1 Stat" ); update(f,2); } );
+  stat_ch2.begin( [](SwitchInput::Event f, int){ switch_event( f, "Heating 2 Stat" ); update(f,4); } );
 
    stat_hw.update_debounce_ms( 100 ); // thermostat inputs will probably be
   stat_ch1.update_debounce_ms( 100 ); // quite clean, but we can afford to
@@ -118,16 +158,27 @@ void app_setup( )
   pinMode( app::outputs::demand_ch2_pin, OUTPUT );
   pinMode( app::outputs::demand_ch3_pin, OUTPUT );
 
-  test_ticker.attach_scheduled( 1, [](){
-    static int c = 0;
-    digitalWrite( app::outputs::demand_hw_pin,  c & 1 );
-    digitalWrite( app::outputs::demand_ch1_pin, c & 2 );
-    digitalWrite( app::outputs::demand_ch2_pin, c & 4 );
-    digitalWrite( app::outputs::demand_ch3_pin, c & 8 );
-    c++;
-  } );
-
   crossings_ticker.attach_scheduled( 0.1, crossings_fn );
+
+  static uint32_t f0 = 0x00000007;
+
+
+
+  t1.attach_scheduled(0.1, [](){
+
+    for (size_t i = 0; i < num_chans; i++)
+    {
+      Serial.printf("chan %u - %u %u\n", i, chans[i].enabled, chans[i].active );
+      if (!chans[i].enabled)
+        digitalWrite( chans[i].pin, LOW );
+      else if (!chans[i].active)
+        digitalWrite( chans[i].pin, f0 & 1 );
+      else
+        digitalWrite( chans[i].pin, HIGH );
+    }
+
+    f0 = rr1( f0 );
+  } );
 }
 
 // ----------------------------------------------------------------------------

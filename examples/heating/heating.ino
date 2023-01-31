@@ -24,6 +24,8 @@ node::WiFi wifi;
 
 // ------------------------------------
 
+node::Logger app_log( "APP" );
+
 void setup( )
 {
   Serial.begin(115200);
@@ -41,6 +43,7 @@ void setup( )
   wifi.begin();
   ntp.begin();
   mqtt.begin();
+  mqtt.on( "", [](auto cmd, auto data){ app_log.infof( "mqtt message - %s / %s", cmd, data ); } );
 
   webpages::register_default( web, uptime );
   webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );
