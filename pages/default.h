@@ -6,11 +6,16 @@ namespace webpages {
 
 void handle_default( AsyncWebServerRequest *request, node::Uptime &uptime )
 {
+  static String reset_reason = ESP.getResetReason();
+    // capture this once; it's not going to change.
+
   String message;
   message += WIFI_HOSTNAME;
-  message += "\n\nBuild ";
+  message += "\n\nBuild: ";
   message += app::build_version;
-  message += "\nUptime ";
+  message += "\nLast reset: ";
+  message += reset_reason;
+  message += "\nUptime: ";
   message += uptime.secs();
   message += " seconds\n";
 
