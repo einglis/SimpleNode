@@ -12,7 +12,7 @@ std::ostream &str_sense( std::ostream &os, senses_t s )
 {
   os << ((s & 1) ? 'w' : '-');
   s >>= 1;
-  for (auto i = 1; i < sizeof(senses_t) * 8; ++i, s >>= 1)
+  for (size_t i = 1; i < sizeof(senses_t) * 8; ++i, s >>= 1)
     os << (char)((s & 1) ? i+'0' : '-');
   return os;
 }
@@ -115,6 +115,55 @@ public:
 
     std::cout << std::endl;
   }
+
+  void save(const char *filename)
+  {
+    Serial.println(filename);
+    File file = LittleFS.open(filename, "w");
+    if (!file)
+    {
+      Serial.println("Failed to open file for writing");
+      // XXXEDD: report error by MQTT?
+      return;
+    }
+    for (auto [time, peg]: pegs)
+    {
+      uint8_t buf[4] = { 0 };
+      buf[0] = time / 60;
+      buf[1] = time % 60;
+      buf[2] = peg.on;
+      buf[3] = peg.off;
+
+      if (file.write(buf, 4))
+        Serial.println("Record written");
+      else
+        Serial.println("Write failed");
+    }
+    file.close();
+  }
+  void load(const char *filename)
+  {
+    Serial.println(filename);
+
+    File file = LittleFS.open(filename, "r");
+    if (!file)
+    {
+      Serial.println("Failed to open file for reading");
+      // XXXEDD: report error by MQTT?
+      return;
+    }
+    while (file.available() >= 4)
+    {
+      uint8_t buf[4] = { 0 };
+      file.read(buf, 4);
+      int time = (int)buf[0] * 60 + buf[1];
+      pegs.insert( {time, {buf[2], buf[3]}} );
+    }
+    if (file.available() > 0)
+      Serial.println("bytes remain in the file");
+  }
+
+
   void dump() const
   {
     for (auto [time, peg]: pegs)

@@ -58,7 +58,7 @@ Ticker crossings_ticker;
 
 void crossings_fn( )
 {
-  static long int epoch = 30000;//ntp.epoch_time() * 60;
+  static long int epoch = 0;//ntp.epoch_time() * 60;
   epoch+=60;
 
   int hh = ntp.epoch_hrs( epoch );
@@ -78,7 +78,7 @@ SwitchInput  stat_hw( [](){ return digitalRead( app::inputs::stat_hw_pin  ); } )
 SwitchInput stat_ch1( [](){ return digitalRead( app::inputs::stat_ch1_pin ); } );
 SwitchInput stat_ch2( [](){ return digitalRead( app::inputs::stat_ch2_pin ); } );
 
-uint32_t stats = 0;
+uint32_t stats = 1 << 3; // perma-on
 
 
 inline uint32_t rr1 (uint32_t x) { return (x << 31) | (x >> 1); } // roll right one
@@ -119,6 +119,28 @@ void app_setup( )
 //  mqtt.on( "ch2", [](auto, auto data) { if (bool x; str_on_off( data, x )) ch2_control( x ); } );
 //  mqtt.on( "ch3", [](auto, auto data) { if (bool x; str_on_off( data, x )) ch3_control( x ); } );
 
+
+
+  Serial.println("Mount LittleFS");
+  if (!LittleFS.begin()) {
+    Serial.println("LittleFS mount failed");
+    Serial.println("Formatting LittleFS filesystem");
+    LittleFS.format();
+
+    if (!LittleFS.begin())
+      Serial.println("LittleFS mount failed again");
+  }
+
+  listDir("/");
+
+
+  char file[] = "/fishX.bin";
+
+  for (int i = 0; i <= 3; i++)
+  {
+    file[4] = i + '0';
+    chans[i].load(file);
+  }
 
 
   crossings_ticker.attach_scheduled( 0.1, crossings_fn );
@@ -185,6 +207,10 @@ void cmd_set( int channel, unsigned int sensitivity, bool on_n_off, int time )
     c->on_peg( time, sensitivity );
   else
     c->off_peg( time, sensitivity );
+
+  char file[] = "/fishX.bin";
+  file[4] = channel + '0';
+  c->save(file);
 }
 
 void cmd_boost( int channel, int time )
@@ -206,4 +232,30 @@ void cmd_delete( int channel, int time )
   if (!c) return;
 
   c->remove_peg( time );
+
+  char file[] = "/fishX.bin";
+  file[4] = channel + '0';
+  c->save(file);
+}
+
+
+void listDir(const char * dirname) {
+  Serial.printf("Listing directory: %s\n", dirname);
+
+  Dir root = LittleFS.openDir(dirname);
+
+  while (root.next()) {
+    File file = root.openFile("r");
+    Serial.print("  FILE: ");
+    Serial.print(root.fileName());
+    Serial.print("  SIZE: ");
+    Serial.print(file.size());
+    time_t cr = file.getCreationTime();
+    time_t lw = file.getLastWrite();
+    file.close();
+    struct tm * tmstruct = localtime(&cr);
+    Serial.printf("    CREATION: %d-%02d-%02d %02d:%02d:%02d\n", (tmstruct->tm_year) + 1900, (tmstruct->tm_mon) + 1, tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min, tmstruct->tm_sec);
+    tmstruct = localtime(&lw);
+    Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n", (tmstruct->tm_year) + 1900, (tmstruct->tm_mon) + 1, tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min, tmstruct->tm_sec);
+  }
 }
