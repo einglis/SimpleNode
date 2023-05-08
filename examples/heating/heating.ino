@@ -1,5 +1,6 @@
 
 #include "app_config.h"
+#include "helpers.h"
 
 #include "build.gen.h"
 namespace app {
@@ -11,6 +12,8 @@ const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 #include "pages/config.h"
 #include "pages/default.h"
 #include "pages/update.h"
+
+#include "cmd_parse.h"
 
 // ----------------------------------------------------------------------------
 
@@ -43,7 +46,6 @@ void setup( )
   wifi.begin();
   ntp.begin();
   mqtt.begin();
-  mqtt.on( "", [](auto cmd, auto data){ app_log.infof( "mqtt message - %s / %s", cmd, data ); } );
 
   webpages::register_default( web, uptime );
   webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );
@@ -54,4 +56,20 @@ void setup( )
 }
 
 void loop( )
-{ }
+{
+  static char buf[128];
+  static char* ch = &buf[0];
+
+  auto c = Serial.read();
+  if (c > 0)
+  {
+    *ch++ = c;
+    if (c == '\n')
+    {
+       *(ch - 1) = '\0';
+       Serial.println(buf);
+       parse_cmd(buf);
+       ch = &buf[0];
+    }
+  }
+}
