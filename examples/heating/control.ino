@@ -185,6 +185,14 @@ Channel* id_to_channel( int channel )
 
 // ----------------------------------------------------------------------------
 
+static const char *day_to_str(int day)
+{
+  const char *days[] = { "today", "mon", "tue", "wed", "thu", "fri", "sat", "sun", "all" };
+  if (day < 0 || day > (int)(sizeof(days)/sizeof(days[0])))
+    return "error";
+  return days[day];
+}
+
 void cmd_now( int channel, unsigned int sensitivity, bool on_n_off )
 {
   printf("c%d s%x %s now\n", channel, sensitivity, (on_n_off) ? "ON" : "OFF" );
@@ -197,9 +205,9 @@ void cmd_now( int channel, unsigned int sensitivity, bool on_n_off )
     c->off_now( sensitivity );
 }
 
-void cmd_set( int channel, unsigned int sensitivity, bool on_n_off, int time )
+void cmd_set( int channel, unsigned int sensitivity, bool on_n_off, int time, int day )
 {
-  printf("c%d s%x %s at %02u:%02u\n", channel, sensitivity, (on_n_off) ? "ON" : "OFF", time / 60, time % 60 );
+  printf("c%d s%x %s at %02u:%02u %s\n", channel, sensitivity, (on_n_off) ? "ON" : "OFF", time / 60, time % 60, day_to_str(day) );
   Channel* c = id_to_channel( channel );
   if (!c) return;
 
@@ -225,9 +233,12 @@ void cmd_boost( int channel, int time )
     c->boost_off( );
 }
 
-void cmd_delete( int channel, int time )
+void cmd_delete( int channel, int time, int day )
 {
-  printf("c%d del %02u:%02u\n", channel, time / 60, time % 60 );
+  if (time >= 0)
+    printf("c%d del %02u:%02u\n", channel, time / 60, time % 60 );
+  else
+    printf("c%d clear %s\n", channel, day_to_str(day) );
   Channel* c = id_to_channel( channel );
   if (!c) return;
 
