@@ -58,17 +58,40 @@ Ticker crossings_ticker;
 
 void crossings_fn( )
 {
-  static long int epoch = 0;//ntp.epoch_time() * 60;
-  epoch+=60;
+  if (!ntp.epoch_valid())
+  {
+    return;
+  }
 
-  int hh = ntp.epoch_hrs( epoch );
-  int mm = ntp.epoch_mins( epoch );
+  static long int prev_epoch = ntp.epoch_time();
 
-  if ((mm % 5) == 0)
-    app_log.debugf( "%d:%d", hh, mm );
+  long int curr_epoch = ntp.epoch_time();
 
-  for (auto& c : chans)
-    c.tick();
+  bool new_time = false;
+  if (curr_epoch == prev_epoch)
+    ; // no change
+  else if (curr_epoch > prev_epoch)
+    new_time = true; // time moves forward
+  else if (curr_epoch < prev_epoch - 30)
+    new_time = true; // time moves backwards by more than 30 seconds
+  else 
+    ; // time moves backwards by 30 seconds or less
+
+  if (new_time)
+  {
+    if (ntp.epoch_secs(curr_epoch) == 0)
+    {
+      const int hh = ntp.epoch_hrs( curr_epoch );
+      const int mm = ntp.epoch_mins( curr_epoch );
+
+      app_log.debugf( "%d:%d", hh, mm );
+
+      for (auto& c : chans)
+        c.tick();
+    }
+
+    prev_epoch = curr_epoch;
+  }
 
 }
 
@@ -207,6 +230,8 @@ void cmd_now( int channel, unsigned int sensitivity, bool on_n_off )
 
 void cmd_set( int channel, unsigned int sensitivity, bool on_n_off, int time, int day )
 {
+  if (day < 0) day = 0; // unset => today.
+
   printf("c%d s%x %s at %02u:%02u %s\n", channel, sensitivity, (on_n_off) ? "ON" : "OFF", time / 60, time % 60, day_to_str(day) );
   Channel* c = id_to_channel( channel );
   if (!c) return;
