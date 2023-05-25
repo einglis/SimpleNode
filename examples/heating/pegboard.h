@@ -4,6 +4,7 @@
 #include <iostream>
 #include <map>
 
+extern node::Logger app_log;
 // ----------------------------------------------------------------------------
 
 typedef uint8_t senses_t;
@@ -24,6 +25,7 @@ class PegBoard
 public:
   PegBoard( )
     : curr_time{ 0 }
+    , curr_day{ 0 }
     , curr_pegs{ 0 }
     , boost_until{ 0 }
     { }
@@ -69,28 +71,53 @@ public:
     boost_until = 0;
   }
 
-  void midnight( )
+  void midnight( int day )
   {
     curr_time = 0;
+    curr_day = day % 7; // just in case
     curr_pegs = 0;
     boost_until = 0;
   }
-  void tick( )
-  {
-    curr_time++;
-    if (curr_time == 24*60)
-      midnight();
 
-    auto it = pegs.find(curr_time);
+  void apply_peg( int day, int time )
+  {
+    auto it = pegs.find(time);
     if (it != pegs.end())
     {
       senses_t annihilate = it->second.on & it->second.off;
       curr_pegs |=  (it->second.on  & ~annihilate);
       curr_pegs &= ~(it->second.off & ~annihilate);
     }
+  }
 
-    if (curr_time >= boost_until)
+
+
+  void tick( int day, int hour, int mins )
+  {
+    const int new_time = hour * 60 + mins;
+
+    if (day != curr_day || new_time < curr_time)
+    {
+      app_log.infof("new day or reverse time  %d %02d:%02d -> %d %02d:%02d",
+        curr_day, curr_time/60, curr_time%60, day, hour, mins );
+
+      midnight( day ); // sets curr_day = day
+      apply_peg( curr_day, curr_time ); // ie 00:00
+
+      // boosts will get cancelled by calling midnight().  That's good if it's really midnight;
+      // it's not ideal if time has just sync'd back a minute, but unlikely and benign.
+    }
+
+    while (curr_time < new_time)
+    {
+      curr_time++;
+      apply_peg( curr_day, curr_time );
+        // as pegs accumulate, we might have glitches in the control outputs, but they'll
+        // be too brief to matter, and a large ffwd is not really expected ever anyway.
+
+      if (curr_time > boost_until)
         boost_until = 0;
+    }
   }
 
   senses_t current_sensitivity() const
@@ -185,6 +212,7 @@ private:
   };
 
   int curr_time;
+  int curr_day; // build into curr_time?
   std::map<int, peg> pegs = { }; // peg( time )
   senses_t curr_pegs;
   int boost_until;

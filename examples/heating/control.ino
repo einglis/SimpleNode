@@ -59,40 +59,27 @@ Ticker crossings_ticker;
 void crossings_fn( )
 {
   if (!ntp.epoch_valid())
-  {
     return;
-  }
 
   static long int prev_epoch = ntp.epoch_time();
-
   long int curr_epoch = ntp.epoch_time();
 
-  bool new_time = false;
-  if (curr_epoch == prev_epoch)
-    ; // no change
-  else if (curr_epoch > prev_epoch)
-    new_time = true; // time moves forward
-  else if (curr_epoch < prev_epoch - 30)
-    new_time = true; // time moves backwards by more than 30 seconds
-  else 
-    ; // time moves backwards by 30 seconds or less
-
-  if (new_time)
+  if ((curr_epoch != prev_epoch) && (ntp.epoch_secs(curr_epoch) == 0)) // we'll never be more than a minute away from the correct tick
   {
-    if (ntp.epoch_secs(curr_epoch) == 0)
-    {
-      const int hh = ntp.epoch_hrs( curr_epoch );
-      const int mm = ntp.epoch_mins( curr_epoch );
+    const int dd = ntp.epoch_day( curr_epoch );
+    const int hh = ntp.epoch_hrs( curr_epoch );
+    const int mm = ntp.epoch_mins( curr_epoch );
 
-      app_log.debugf( "%d:%d", hh, mm );
+    app_log.debugf( "%d - %d:%d", dd, hh, mm );
 
       for (auto& c : chans)
-        c.tick();
-    }
-
-    prev_epoch = curr_epoch;
+      {
+        c.tick(dd, hh, mm);
+        break;
+      }
   }
 
+  prev_epoch = curr_epoch;
 }
 
 // ----------------------------------------------------------------------------
@@ -166,7 +153,7 @@ void app_setup( )
   }
 
 
-  crossings_ticker.attach_scheduled( 0.1, crossings_fn );
+  crossings_ticker.attach_scheduled( 0.5, crossings_fn );
 
   static uint32_t f0 = 0x07070707;
 
