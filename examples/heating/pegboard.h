@@ -39,21 +39,39 @@ public:
     curr_pegs &= ~s;
   }
 
-  void on_peg( int time, senses_t s )
+  void on_peg( int day, int time, senses_t s )
   {
+    if (day < 0 || day >= 7) return;
+
     auto it = pegs.find(time);
     if (it != pegs.end())
-      it->second.on |= s;
+    {
+      it->second.on[day] |= s;
+    }
     else
-      pegs.insert( {time, { s, 0 }} );
+    {
+      peg p;
+      memset((void*)&p, 0, sizeof(p));
+      p.on[day] = s;
+      pegs.insert( {time, p} );
+    }
   }
-  void off_peg( int time, senses_t s )
+  void off_peg( int day, int time, senses_t s )
   {
+    if (day < 0 || day >= 7) return;
+
     auto it = pegs.find(time);
     if (it != pegs.end())
-      it->second.off |= s;
+    {
+      it->second.off[day] |= s;
+    }
     else
-      pegs.insert( {time, { 0, s }} );
+    {
+      peg p;
+      memset((void*)&p, 0, sizeof(p));
+      p.off[day] = s;
+      pegs.insert( {time, p} );
+    }
   }
   void remove_peg( int time )
   {
@@ -65,6 +83,7 @@ public:
   void boost_on( int length )
   {
     boost_until = curr_time + 1 + length;
+    printf("boost until %02d:%02d\n", boost_until/60, boost_until%60);
   }
   void boost_off( )
   {
@@ -84,9 +103,9 @@ public:
     auto it = pegs.find(time);
     if (it != pegs.end())
     {
-      senses_t annihilate = it->second.on & it->second.off;
-      curr_pegs |=  (it->second.on  & ~annihilate);
-      curr_pegs &= ~(it->second.off & ~annihilate);
+      senses_t annihilate = it->second.on[day] & it->second.off[day];
+      curr_pegs |=  (it->second.on[day]  & ~annihilate);
+      curr_pegs &= ~(it->second.off[day] & ~annihilate);
     }
   }
 
@@ -115,7 +134,7 @@ public:
         // as pegs accumulate, we might have glitches in the control outputs, but they'll
         // be too brief to matter, and a large ffwd is not really expected ever anyway.
 
-      if (curr_time > boost_until)
+      if (curr_time >= boost_until)
         boost_until = 0;
     }
   }
@@ -145,6 +164,8 @@ public:
 
   void save(const char *filename)
   {
+    dump();
+
     Serial.println(filename);
     File file = LittleFS.open(filename, "w");
     if (!file)
@@ -153,25 +174,29 @@ public:
       // XXXEDD: report error by MQTT?
       return;
     }
-    for (auto [time, peg]: pegs)
-    {
-      uint8_t buf[4] = { 0 };
-      buf[0] = time / 60;
-      buf[1] = time % 60;
-      buf[2] = peg.on;
-      buf[3] = peg.off;
 
-      if (file.write(buf, 4))
+    for (auto [time, p]: pegs)
+    {
+      uint8_t buf[16] = { 0 };
+      uint8_t *bp = &buf[0];
+      *bp++ = time / 60;
+      *bp++ = time % 60;
+      for (int i = 0; i < 7; i++)
+      {
+        *bp++ = p.on[i];
+        *bp++ = p.off[i];
+      }
+      if (file.write(buf, 16))
         Serial.println("Record written");
       else
         Serial.println("Write failed");
     }
     file.close();
   }
+
   void load(const char *filename)
   {
     Serial.println(filename);
-
     File file = LittleFS.open(filename, "r");
     if (!file)
     {
@@ -179,15 +204,30 @@ public:
       // XXXEDD: report error by MQTT?
       return;
     }
-    while (file.available() >= 4)
+    while (file.available() >= 16)
     {
-      uint8_t buf[4] = { 0 };
-      file.read(buf, 4);
+      uint8_t buf[16] = { 0 };
+      file.read(buf, 16);
+
       int time = (int)buf[0] * 60 + buf[1];
-      pegs.insert( {time, {buf[2], buf[3]}} );
+      uint8_t *bp = &buf[2];
+
+      peg p;
+      memset((void*)&p, 0, sizeof(p));
+
+      for (int i = 0; i < 7; i++)
+      {
+        p.on[i] = *bp++;
+        p.off[i] = *bp++;
+      }
+
+      pegs.insert( {time, p} );
     }
     if (file.available() > 0)
       Serial.println("bytes remain in the file");
+    file.close();
+
+    dump();
   }
 
 
@@ -196,10 +236,15 @@ public:
     for (auto [time, peg]: pegs)
     {
       std::cout << " " << time/60 << ":" << time % 60;
-      std::cout << " on: ";
-      str_sense(std::cout, peg.on);
-      std::cout << " off: ";
-      str_sense(std::cout, peg.off);
+
+      const char *days[] = {"su", "mo","tu","we","th","fr","sa"};
+      for (int i = 0; i < 7; i++)
+      {
+        std::cout << " " << days[i] << ":";
+        str_sense(std::cout, peg.on[i]);
+        std::cout << "/";
+        str_sense(std::cout, peg.off[i]);
+      }
       std::cout  << std::endl;
     }
   }
@@ -207,12 +252,12 @@ public:
 private:
   struct peg
   {
-    senses_t on;
-    senses_t off;
+    senses_t on[7];
+    senses_t off[7];
   };
 
   int curr_time;
-  int curr_day; // build into curr_time?
+  int curr_day;
   std::map<int, peg> pegs = { }; // peg( time )
   senses_t curr_pegs;
   int boost_until;

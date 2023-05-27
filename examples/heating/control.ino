@@ -72,11 +72,8 @@ void crossings_fn( )
 
     app_log.debugf( "%d - %d:%d", dd, hh, mm );
 
-      for (auto& c : chans)
-      {
-        c.tick(dd, hh, mm);
-        break;
-      }
+    for (auto& c : chans)
+      c.tick(dd, hh, mm);
   }
 
   prev_epoch = curr_epoch;
@@ -223,10 +220,38 @@ void cmd_set( int channel, unsigned int sensitivity, bool on_n_off, int time, in
   Channel* c = id_to_channel( channel );
   if (!c) return;
 
-  if (on_n_off)
-    c->on_peg( time, sensitivity );
+  if (day == 0)
+  {
+    if (ntp.epoch_valid())
+    {
+      const long int curr_epoch = ntp.epoch_time();
+      const int dd = ntp.epoch_day( curr_epoch );
+      printf("today; %d\n", dd);
+
+      if (on_n_off)
+        c->on_peg( dd, time, sensitivity );
+      else
+        c->off_peg( dd, time, sensitivity );
+    }
+  }
+  else if (day == 8)
+  {
+    printf("every day\n");
+    for (int i = 0; i < 7; i++)
+      if (on_n_off)
+        c->on_peg( i, time, sensitivity );
+      else
+        c->off_peg( i, time, sensitivity );
+  }
   else
-    c->off_peg( time, sensitivity );
+  {
+    printf("one day %d\n", day-1);
+
+    if (on_n_off)
+      c->on_peg( day-1, time, sensitivity );
+    else
+      c->off_peg( day-1, time, sensitivity );
+  }
 
   char file[] = "/fishX.bin";
   file[4] = channel + '0';
