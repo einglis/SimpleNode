@@ -17,7 +17,7 @@ namespace app {
 namespace outputs {
   enum {
     status_pin = LED_BUILTIN, // aka 2
-    pixels_pin = 14, // note: not the same as devboard
+    pixels_pin = 14,
     power_pin  = 13,
   };
 }
