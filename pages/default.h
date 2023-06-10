@@ -6,7 +6,7 @@ namespace webpages {
 
 void handle_default( AsyncWebServerRequest *request, node::Uptime &uptime )
 {
-  static String reset_reason = ESP.getResetReason();
+  static String reset_reason = ESP.getResetInfo();
     // capture this once; it's not going to change.
 
   String message;
