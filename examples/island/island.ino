@@ -8,11 +8,13 @@ const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 #include <simple_node.h>
 
+#include "pages/config.h"
 #include "pages/default.h"
 #include "pages/update.h"
 
 // ----------------------------------------------------------------------------
 
+node::Configuration< app::Config > configuration( CONFIG_FILENAME );
 node::Mqtt mqtt;
 node::Ntp ntp;
 node::WifiPatterns patterns( app::outputs::status_pin );
@@ -32,6 +34,8 @@ void setup( )
   Serial.println( app::build_version );
   Serial.println( ESP.getResetReason() );
 
+  configuration.begin();
+
   uptime.begin();
   patterns.begin();
   pixels.begin();
@@ -41,6 +45,7 @@ void setup( )
   mqtt.begin();
 
   webpages::register_default( web, uptime );
+  webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );
   webpages::register_update( web );
   web.begin();
 

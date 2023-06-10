@@ -24,6 +24,9 @@ void toggle_power( )
 
 void new_power( bool pwr )
 {
+  configuration.rw().power = pwr;
+  configuration.save();
+
   pwr_target_on = pwr;
 
   power_fade_ticker.attach_ms_scheduled( 5, []() {
@@ -65,6 +68,9 @@ Ticker transition_ticker;
 
 void new_pattern( int next_pattern )
 {
+  configuration.rw().pattern = next_pattern;
+  configuration.save();
+
   if (next_pattern >= (int)pixel_patterns.size())
   {
     app_log.warningf( "unknown pattern %d", next_pattern );
@@ -196,4 +202,13 @@ void app_setup( )
   mqtt.on( "toggle", [](auto, auto){ toggle_power(); } );
 
   //mqtt.on( "", [](auto, auto){ /*catchall*/ } );
+
+  if (!configuration.load() || !configuration.is_valid())
+    memset( &configuration.rw(), 0, sizeof(app::Config));
+
+  configuration.rw().counter++;
+  configuration.save();
+
+  new_power(configuration.ro().power);
+  new_pattern(configuration.ro().pattern);
 }

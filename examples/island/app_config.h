@@ -10,9 +10,23 @@
 
 #define PATTERN_WIFI_GOT_IP       0x00000000 // no blinking
 
+#define CONFIG_FILENAME "/island_config.bin"
+
 // ----------------------------------------------------------------------------
 
 namespace app {
+
+struct Config
+{
+  union {
+    struct {
+      int counter;
+      int power;
+      int pattern;
+    };
+    uint8_t pad[64];
+  };
+};
 
 namespace outputs {
   enum {
