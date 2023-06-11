@@ -231,5 +231,5 @@ void app_setup( )
   configuration.save();
 
   new_power(configuration.ro().power);
-  new_pattern(configuration.ro().pattern);
+  curr_pattern = prev_pattern = configuration.ro().pattern;
 }
