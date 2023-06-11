@@ -28,7 +28,7 @@
 const length_of_day = 24 * 60; // 1440
 
 const blob_width = 12;
-const row_spacing = 40;
+const row_spacing = 30;
 
 
 // ------------------------------------
@@ -167,6 +167,46 @@ class Sense
   }
 }
 
+if (1) {
+
+  var c1 = { name: "Monday", colour:'IndianRed', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+  var c1 = { name: "Tuesday", colour:'IndianRed', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+  var c1 = { name: "Wednesday", colour:'IndianRed', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+  var c1 = { name: "Thursday", colour:'IndianRed', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+  var c1 = { name: "Frday", colour:'IndianRed', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+  var c1 = { name: "Saturday", colour:'Peru', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+  var c1 = { name: "Sunday", colour:'Peru', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+
+} else {
+
 var c0 = { name: "Hot Water", colour:'CornflowerBlue', senses:[] };
 c0.senses.push( new Sense( "Cylinder" ) );
 channels.push(c0);
@@ -188,6 +228,8 @@ c3.senses.push( new Sense( "Nest" ) );
 c3.senses.push( new Sense( "Stat2" ) );
 c3.senses.push( new Sense( "ON" ) );
 channels.push(c3);
+
+}
 
 console.log(channels);
 
@@ -297,7 +339,7 @@ patterns.push( { "id": "c2" } );
 patterns.forEach( function( item, index ) {
     item.canvas = document.getElementById( item.id );
       item.canvas.width = 1920;
-      item.canvas.height = 800;
+      item.canvas.height = 1080;
       item.canvas.style = "background: #fff;"// + " border:1px solid #d3d3d3;"
 
     item.context = item.canvas.getContext( "2d" );
