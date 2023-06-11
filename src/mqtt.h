@@ -111,7 +111,11 @@ private:
     for ( auto h : handlers )
       if (0 == strncmp(h->stem, msg, h->stem_len))
       {
-        h->fn( msg, msg+h->stem_len );
+        const char *data = msg + h->stem_len;
+        while (data && *data == ' ')
+          data++; // skip spaces
+
+        h->fn( msg, data );
         break;
       }
   }
