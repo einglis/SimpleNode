@@ -79,13 +79,6 @@ public:
       pegs.erase(it);
   }
 
-  void midnight( int day )
-  {
-    curr_time = 0;
-    curr_day = day % 7; // just in case
-    curr_pegs = 0;
-  }
-
   void apply_peg( int day, int time )
   {
     auto it = pegs.find(time);
@@ -106,7 +99,10 @@ public:
       app_log.infof("new day or reverse time  %d %02d:%02d -> %d %02d:%02d",
         curr_day, curr_time/60, curr_time%60, day, hour, mins );
 
-      midnight( day ); // sets curr_day = day
+      curr_time = 0;
+      curr_day = day % 7; // just in case
+      curr_pegs = 0;
+
       apply_peg( curr_day, curr_time ); // ie 00:00
     }
 
