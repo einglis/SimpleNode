@@ -27,7 +27,6 @@ public:
     : curr_time{ 0 }
     , curr_day{ 0 }
     , curr_pegs{ 0 }
-    , boost_until{ 0 }
     { }
 
   void on_now( senses_t s )
@@ -80,22 +79,11 @@ public:
       pegs.erase(it);
   }
 
-  void boost_on( int length )
-  {
-    boost_until = curr_time + 1 + length;
-    printf("boost until %02d:%02d\n", boost_until/60, boost_until%60);
-  }
-  void boost_off( )
-  {
-    boost_until = 0;
-  }
-
   void midnight( int day )
   {
     curr_time = 0;
     curr_day = day % 7; // just in case
     curr_pegs = 0;
-    boost_until = 0;
   }
 
   void apply_peg( int day, int time )
@@ -109,8 +97,6 @@ public:
     }
   }
 
-
-
   void tick( int day, int hour, int mins )
   {
     const int new_time = hour * 60 + mins;
@@ -122,9 +108,6 @@ public:
 
       midnight( day ); // sets curr_day = day
       apply_peg( curr_day, curr_time ); // ie 00:00
-
-      // boosts will get cancelled by calling midnight().  That's good if it's really midnight;
-      // it's not ideal if time has just sync'd back a minute, but unlikely and benign.
     }
 
     while (curr_time < new_time)
@@ -133,18 +116,12 @@ public:
       apply_peg( curr_day, curr_time );
         // as pegs accumulate, we might have glitches in the control outputs, but they'll
         // be too brief to matter, and a large ffwd is not really expected ever anyway.
-
-      if (curr_time >= boost_until)
-        boost_until = 0;
     }
   }
 
   senses_t current_sensitivity() const
   {
-    if (boost_until > 0)
-      return ~0; // everything
-    else
-      return curr_pegs;
+    return curr_pegs;
   }
 
   void report() const
@@ -153,9 +130,6 @@ public:
 
     std::cout << "pegs: ";
     str_sense(std::cout, curr_pegs);
-    if (boost_until > 0)
-      std::cout << " + boost";
-
     std::cout << "  -->  ";
     str_sense(std::cout, current_sensitivity());
 
@@ -260,5 +234,4 @@ private:
   int curr_day;
   std::map<int, peg> pegs = { }; // peg( time )
   senses_t curr_pegs;
-  int boost_until;
 };

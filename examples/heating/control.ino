@@ -37,8 +37,16 @@ class Channel : public PegBoard
 public:
   Channel( int output_pin )
     : pin{ output_pin }
+    , boost_secs{ 0 }
     { }
+
+  void boost_for( int length )
+  {
+    boost_secs = length * 60;
+  }
+
   int pin;
+  int boost_secs;
 };
 
 static Channel chans[] =
@@ -50,13 +58,9 @@ static Channel chans[] =
 };
 static const size_t num_chans = sizeof(chans) / sizeof(chans[0]);
 
+
 Ticker crossings_ticker;
-
-
-
-
-
-void crossings_fn( )
+void crossings_fn( ) // called at 2Hz
 {
   if (!ntp.epoch_valid())
     return;
@@ -75,8 +79,14 @@ void crossings_fn( )
     for (auto& c : chans)
       c.tick(dd, hh, mm);
   }
-
   prev_epoch = curr_epoch;
+
+  static bool even = false;
+  if (even) // every 1 Hz.
+    for (auto& c : chans)
+      if (c.boost_secs > 0)
+        c.boost_secs--;
+  even = !even;
 }
 
 // ----------------------------------------------------------------------------
@@ -90,7 +100,6 @@ uint32_t stats = 1 << 3; // perma-on
 
 inline uint32_t rr1 (uint32_t x) { return (x << 31) | (x >> 1); } // roll right one
 
-Ticker test_ticker;
 Ticker t1;
 
 
@@ -151,16 +160,16 @@ void app_setup( )
 
 
   crossings_ticker.attach_scheduled( 0.5, crossings_fn );
+    // note: the logic of crossings_fn will need to change if the interval is adjusted.
 
-  static uint32_t f0 = 0x07070707;
-
-
-
-  t1.attach_scheduled(0.1, [](){
-
+  t1.attach_scheduled(0.1, []()
+  {
+    static uint32_t f0 = 0x07070707;
     for (auto& c : chans)
     {
       unsigned int sense = c.current_sensitivity();
+      if (c.boost_secs > 0)
+        sense = ~0;
 
       if (sense & stats)
         digitalWrite( c.pin, HIGH );
@@ -264,10 +273,8 @@ void cmd_boost( int channel, int time )
   Channel* c = id_to_channel( channel );
   if (!c) return;
 
-  if (time > 0)
-    c->boost_on( time );
-  else
-    c->boost_off( );
+  if (time >= 0)
+    c->boost_for( time );
 }
 
 void cmd_delete( int channel, int time, int day )
