@@ -14,13 +14,14 @@ class Mqtt
   : public node::WifiObserver
 {
 public:
-  Mqtt()
-    : client( &my_wifi, MQTT_HOST, MQTT_PORT, MQTT_CLIENT, ""/*key*/) // lazy config
+  Mqtt( const char* hostname, const char* client_id )
+    : client( &my_wifi, hostname, MQTT_PORT, client_id, ""/*user*/, ""/*password*/)
+      // need to pass all params, otherwise we default-select the non-client version.
     { }
 
   void begin( )
   {
-    const bool will_rc = client.will( MQTT_PUB_TOPIC, "offline" );
+    const bool will_rc = client.will( MQTT_PUB_TOPIC"/connection", "offline", MQTT_QOS_1/*at least once*/, 1/*retain*/ );
     if (!will_rc)
       log.warning( F("failed to set will") );
 
@@ -93,7 +94,7 @@ private:
 
     char buf[32]; // 16 bytes of ipv4 + some
     sprintf( buf, "online %s", my_wifi.localIP().toString().c_str() );
-    publish( buf );
+    (void)client.publish( MQTT_PUB_TOPIC"/connection", buf, MQTT_QOS_1/*at least once*/, 1/*retain*/ );
 
     ping_ticker.attach_scheduled( MQTT_KEEPALIVE, [this]() {
       log.debug( F("ping") );
