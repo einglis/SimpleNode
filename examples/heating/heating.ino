@@ -1,6 +1,5 @@
 
 #include "app_config.h"
-#include "helpers.h"
 
 #include "build.gen.h"
 namespace app {
