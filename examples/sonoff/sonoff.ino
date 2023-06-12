@@ -16,7 +16,7 @@ using node::ButtonInput;
 // ----------------------------------------------------------------------------
 
 node::Configuration< app::Config > configuration( CONFIG_FILENAME );
-node::Mqtt mqtt;
+node::Mqtt mqtt( MQTT_HOST, MQTT_CLIENT );
 node::WifiPatterns patterns( app::outputs::status_pin );
 node::Uptime uptime;
 node::Webserver web;

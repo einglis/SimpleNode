@@ -2,11 +2,11 @@
 
 // ----------------------------------------------------------------------------
 
-#define WIFI_HOSTNAME "heat"
+#define WIFI_HOSTNAME "heating"
 
-#define MQTT_CLIENT "heat_client"
-#define MQTT_SUB_TOPIC "heat/cmd"
-#define MQTT_PUB_TOPIC "heat/status"
+#define MQTT_CLIENT "heating"
+#define MQTT_SUB_TOPIC "heating/cmd"
+#define MQTT_PUB_TOPIC "heating/status"
 
 #define PATTERN_WIFI_GOT_IP   0x00000001
 

@@ -16,7 +16,7 @@ const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 // ----------------------------------------------------------------------------
 
 node::Configuration< app::Config > configuration( CONFIG_FILENAME );
-node::Mqtt mqtt;
+node::Mqtt mqtt( MQTT_HOST, MQTT_CLIENT );
 node::Ntp ntp;
 node::WifiPatterns patterns( app::outputs::status_pin );
 node::Pixels pixels( app::outputs::pixels_pin, NUM_PIXELS, app::pixels_update );

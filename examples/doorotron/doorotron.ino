@@ -13,7 +13,7 @@ const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 
 // ----------------------------------------------------------------------------
 
-node::Mqtt mqtt;
+node::Mqtt mqtt( MQTT_HOST, MQTT_CLIENT );
 node::WifiPatterns patterns( app::outputs::status_pin );
 node::Uptime uptime;
 node::Webserver web;
