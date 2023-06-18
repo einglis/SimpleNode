@@ -16,8 +16,10 @@ void handle_default( AsyncWebServerRequest *request, node::Uptime &uptime )
   message += "\nLast reset: ";
   message += reset_reason;
   message += "\nUptime: ";
-  message += uptime.secs();
-  message += " seconds\n";
+
+  char buf[32] = { 0 };
+  (void)uptime.friendly( buf, sizeof(buf) );
+  message += buf;
 
   request->send(200, "text/plain", message);
 }
