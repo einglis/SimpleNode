@@ -9,10 +9,20 @@ namespace node {
 class Syslog
 {
 public:
+
+  enum
+  {
+    severity_debug   = 7,
+    severity_info    = 6,
+    severity_warning = 4,
+    severity_error   = 3,
+  };
+
   Syslog(  )
     : have_ip{ false }
     , ip{ }
     , port{ }
+    , log_level{ severity_debug }
   { }
 
   void begin( const char* syslog_ip_as_string, int syslog_port = 514  /*syslog default*/ )
@@ -22,9 +32,15 @@ public:
     port = syslog_port;
   }
 
+  void set_level( int new_level )
+  {
+    log_level = new_level;
+  }
+
   void syslog(int level, const char *source, const char *message)
   {
     if (!have_ip) return;
+    if (level > log_level) return;
 
     // Syslog messages should apparently carry a protocol version, various
     // identifiers, a timestamp and so on.  But it works just fine with a
@@ -47,6 +63,7 @@ public:
   void syslog(int level, const char *source, const __FlashStringHelper *message)
   {
     if (!have_ip) return;
+    if (level > log_level) return;
 
     char header[] = { '<', (char)(level + '0'), '>', '\0' };
 
@@ -72,6 +89,7 @@ private:
   bool have_ip;
   IPAddress ip;
   int port;
+  int log_level;
 };
 
 

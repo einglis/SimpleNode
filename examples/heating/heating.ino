@@ -44,6 +44,7 @@ void setup( )
 
   configuration.begin();
   syslog.begin( "10.23.1.2" );
+  syslog.set_level( node::Syslog::severity_info );
 
   uptime.begin();
   patterns.begin();
