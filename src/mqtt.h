@@ -14,25 +14,45 @@ class Mqtt
   : public node::WifiObserver
 {
 public:
-  Mqtt( const char* hostname, const char* client_id )
-    : client( &my_wifi, hostname, MQTT_PORT, client_id, ""/*user*/, ""/*password*/)
-      // need to pass all params, otherwise we default-select the non-client version.
+  Mqtt( )
+    : client_id{ 0 }
     { }
 
-  void begin( )
+  void set_client_id( const char* id )
   {
-    const bool will_rc = client.will( MQTT_PUB_TOPIC"/connection", "offline", MQTT_QOS_1/*at least once*/, 1/*retain*/ );
+    const size_t max_id_len = sizeof(client_id) - 1; // -1 for termination
+    const size_t id_len = std::min( strlen(id), max_id_len );
+    strncpy( client_id, id, id_len);
+  }
+
+  void set_client_id( const char* id, uint32_t salt )
+  {
+    const size_t max_id_len = sizeof(client_id) - 9 - 1; // -9 for "_55AA1177", -1 for termination
+    const size_t id_len = std::min( strlen(id), max_id_len );
+    strncpy( client_id, id, id_len);
+    sprintf( client_id + id_len, "_%08x", salt );
+  }
+
+
+  void begin( const char* mqtt_host, int mqtt_port )
+  {
+    log.infof( "client id \"%s\"", client_id);
+
+    client = new Adafruit_MQTT_Client( &my_wifi, mqtt_host, mqtt_port, client_id, ""/*user*/, ""/*password*/);
+      // need to pass all params, otherwise we default-select the non-client version.
+
+    const bool will_rc = client->will( MQTT_PUB_TOPIC"/connection", "offline", MQTT_QOS_1/*at least once*/, 1/*retain*/ );
     if (!will_rc)
       log.warning( F("failed to set will") );
 
-    const bool keepalive_rc = client.setKeepAliveInterval( MQTT_KEEPALIVE * 1.5 );
+    const bool keepalive_rc = client->setKeepAliveInterval( MQTT_KEEPALIVE * 1.5 );
     if (!keepalive_rc)
       log.warning( F("failed to set keepalive") );
 
 
-    auto sub = std::make_shared<Adafruit_MQTT_Subscribe>( &client, MQTT_SUB_TOPIC );
+    auto sub = std::make_shared<Adafruit_MQTT_Subscribe>( client, MQTT_SUB_TOPIC );
 
-    const bool sub_rc = client.subscribe( sub.get() );
+    const bool sub_rc = client->subscribe( sub.get() );
     if (!sub_rc)
       log.warning( F("failed to subscribe to a topic") );
     else
@@ -44,7 +64,7 @@ public:
   virtual void wifi_down( ) // WifiObserver
   {
     log.info( F("stopping") );
-    client.disconnect();
+    client->disconnect();
 
     poll_ticker.detach();
     mqtt_disconnected();
@@ -65,12 +85,13 @@ public:
 
   bool publish( const char* payload )
   {
-    return client.publish( MQTT_PUB_TOPIC, payload );
+    return client->publish( MQTT_PUB_TOPIC, payload );
   }
 
 private:
   WiFiClient my_wifi;
-  Adafruit_MQTT_Client client;
+  char client_id[32]; // needs to live as long as the client
+  Adafruit_MQTT_Client *client;
   Ticker poll_ticker;
   Ticker ping_ticker;
   std::vector< std::shared_ptr<Adafruit_MQTT_Subscribe> > subs;
@@ -94,11 +115,11 @@ private:
 
     char buf[32]; // 16 bytes of ipv4 + some
     sprintf( buf, "online %s", my_wifi.localIP().toString().c_str() );
-    (void)client.publish( MQTT_PUB_TOPIC"/connection", buf, MQTT_QOS_1/*at least once*/, 1/*retain*/ );
+    (void)client->publish( MQTT_PUB_TOPIC"/connection", buf, MQTT_QOS_1/*at least once*/, 1/*retain*/ );
 
     ping_ticker.attach_scheduled( MQTT_KEEPALIVE, [this]() {
       log.debug( F("ping") );
-      client.ping(); // can block for up to 500 ms.
+      client->ping(); // can block for up to 500 ms.
     } );
   }
   void mqtt_disconnected( )
@@ -123,24 +144,24 @@ private:
 
   void poll( bool was_connected = false )
   {
-    if (client.connected())
+    if (client->connected())
     {
-      Adafruit_MQTT_Subscribe *sub = client.readSubscription( 0/*timeout*/ );
+      Adafruit_MQTT_Subscribe *sub = client->readSubscription( 0/*timeout*/ );
       for (int i = 0; sub && i < 10; i++) // i count is to limit potential batch size
       {
         handle_message((const char *)sub->lastread, sub->datalen);
-        sub->new_message = false; // as per 'client.processSubscriptionPacket()'
+        sub->new_message = false; // as per 'client->processSubscriptionPacket()'
 
-        sub = client.readSubscription( 0/*timeout*/ );
+        sub = client->readSubscription( 0/*timeout*/ );
       }
     }
-    else // (!client.connected())
+    else // (!client->connected())
     {
       if (was_connected)
         mqtt_disconnected();
 
       log.info( F("trying to connect") );
-      if (client.connect() == 0) /* 0 == connected*/
+      if (client->connect() == 0) /* 0 == connected*/
       {
         mqtt_connected();
         poll_ticker.attach_ms_scheduled( 100, [this](){ poll( true ); } );

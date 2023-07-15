@@ -21,7 +21,7 @@ const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 // ----------------------------------------------------------------------------
 
 node::Configuration< app::Config > configuration( CONFIG_FILENAME );
-node::Mqtt mqtt( MQTT_HOST, MQTT_CLIENT );
+node::Mqtt mqtt;
 node::Ntp ntp;
 node::Syslog syslog;
 node::Uptime uptime;
@@ -51,7 +51,9 @@ void setup( )
 
   wifi.begin();
   ntp.begin();
-  mqtt.begin();
+
+  mqtt.set_client_id( MQTT_CLIENT );
+  mqtt.begin( MQTT_HOST, MQTT_PORT );
 
   node::Logger::use_syslog( syslog );
 
