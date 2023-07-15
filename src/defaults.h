@@ -12,6 +12,13 @@
 #define WIFI_HOSTNAME "simple_node"
 #endif
 
+#ifndef SYSLOG_HOST
+#define SYSLOG_HOST "10.23.1.2"
+#endif
+#ifndef SYSLOG_PORT
+#define SYSLOG_PORT 514
+#endif
+
 #ifndef NTP_HOST
 #define NTP_HOST "europe.pool.ntp.org"
 #endif

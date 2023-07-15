@@ -23,10 +23,11 @@ const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 node::Configuration< app::Config > configuration( CONFIG_FILENAME );
 node::Mqtt mqtt( MQTT_HOST, MQTT_CLIENT );
 node::Ntp ntp;
-node::WifiPatterns patterns( app::outputs::status_pin );
+node::Syslog syslog;
 node::Uptime uptime;
 node::Webserver web;
 node::WiFi wifi;
+node::WifiPatterns patterns( app::outputs::status_pin );
 
 // ------------------------------------
 
@@ -42,6 +43,7 @@ void setup( )
   Serial.println( ESP.getResetReason() );
 
   configuration.begin();
+  syslog.begin( "10.23.1.2" );
 
   uptime.begin();
   patterns.begin();
@@ -49,6 +51,8 @@ void setup( )
   wifi.begin();
   ntp.begin();
   mqtt.begin();
+
+  node::Logger::use_syslog( syslog );
 
   webpages::register_default( web, uptime );
   webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );
