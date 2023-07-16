@@ -15,33 +15,50 @@ class Mqtt
 {
 public:
   Mqtt( )
-    : client_id{ 0 }
+    : salty{ 0 }
+    , client_id_buf{ 0 }
+    , pub_topic_buf{ 0 }
+    , pub_topic_len{ 0 }
     { }
 
-  void set_client_id( const char* id )
+  void salt( uint32_t s )
   {
-    const size_t max_id_len = sizeof(client_id) - 1; // -1 for termination
-    const size_t id_len = std::min( strlen(id), max_id_len );
-    strncpy( client_id, id, id_len);
+    salty = s;
   }
 
-  void set_client_id( const char* id, uint32_t salt )
+  void client_id( const char* id )
   {
-    const size_t max_id_len = sizeof(client_id) - 9 - 1; // -9 for "_55AA1177", -1 for termination
-    const size_t id_len = std::min( strlen(id), max_id_len );
-    strncpy( client_id, id, id_len);
-    sprintf( client_id + id_len, "_%08x", salt );
+    const int salt_len = (salty) ? 9 : 0; // 9 for "_55AA1177"
+    const size_t max_id_len = sizeof(client_id_buf) - salt_len - 1; // -1 for termination
+    size_t id_len = std::min( strlen(id), max_id_len );
+    memcpy( client_id_buf, id, id_len );
+    if (salty)
+      id_len += sprintf( client_id_buf + id_len, "_%08x", salty );
+    client_id_buf[id_len] = '\0';
   }
 
+  void pub_topic( const char* topic )
+  {
+    const int salt_len = (salty) ? 9 : 0; // 9 for "_55AA1177"
+    const size_t max_topic_len = sizeof(pub_topic_buf) / 2 - salt_len - 1;
+      // /2 to guarantee some space for further topic paths
+      // -1 for termination
+    pub_topic_len = std::min( strlen(topic), max_topic_len );
+    memcpy( pub_topic_buf, topic, pub_topic_len);
+    if (salty)
+      pub_topic_len += sprintf( pub_topic_buf + pub_topic_len, "_%08x", salty );
+    pub_topic_buf[pub_topic_len++] = '/';
+    pub_topic_buf[pub_topic_len] = '\0';
+  }
 
   void begin( const char* mqtt_host, int mqtt_port )
   {
-    log.infof( "client id \"%s\"", client_id);
+    log.infof( "client id \"%s\"", client_id_buf );
 
-    client = new Adafruit_MQTT_Client( &my_wifi, mqtt_host, mqtt_port, client_id, ""/*user*/, ""/*password*/);
+    client = new Adafruit_MQTT_Client( &my_wifi, mqtt_host, mqtt_port, client_id_buf, ""/*user*/, ""/*password*/);
       // need to pass all params, otherwise we default-select the non-client version.
 
-    const bool will_rc = client->will( MQTT_PUB_TOPIC"/connection", "offline", MQTT_QOS_1/*at least once*/, 1/*retain*/ );
+    const bool will_rc = client->will( make_pub_topic("connection"), "offline", MQTT_QOS_1/*at least once*/, 1/*retain*/ );
     if (!will_rc)
       log.warning( F("failed to set will") );
 
@@ -83,15 +100,19 @@ public:
     handlers.push_back( handler );
   }
 
-  bool publish( const char* payload )
-  {
-    return client->publish( MQTT_PUB_TOPIC, payload );
-  }
+  // bool publish( const char* payload )
+  // {
+  //   return client->publish( pub_topic(""), payload );
+  // }
+
 
 private:
   WiFiClient my_wifi;
-  char client_id[32]; // needs to live as long as the client
+  uint32_t salty; // 0 == no salt
+  char client_id_buf[32]; // needs to live as long as the client
   Adafruit_MQTT_Client *client;
+  char pub_topic_buf[128];
+  int pub_topic_len;
   Ticker poll_ticker;
   Ticker ping_ticker;
   std::vector< std::shared_ptr<Adafruit_MQTT_Subscribe> > subs;
@@ -109,13 +130,22 @@ private:
   };
   std::vector<std::shared_ptr<MqttHandler>> handlers;
 
+  const char* make_pub_topic( const char *tail )
+  {
+    const size_t max_tail_len = sizeof(pub_topic_buf) - pub_topic_len - 1; // -1 for termination
+    const size_t tail_len = std::min( strlen(tail), max_tail_len );
+    memcpy( pub_topic_buf + pub_topic_len, tail, tail_len);
+    pub_topic_buf[pub_topic_len + tail_len] = '\0';
+    return pub_topic_buf;
+  }
+
   void mqtt_connected( )
   {
     log.info( F("connected") );
 
     char buf[32]; // 16 bytes of ipv4 + some
     sprintf( buf, "online %s", my_wifi.localIP().toString().c_str() );
-    (void)client->publish( MQTT_PUB_TOPIC"/connection", buf, MQTT_QOS_1/*at least once*/, 1/*retain*/ );
+    (void)client->publish( make_pub_topic("connection"), buf, MQTT_QOS_1/*at least once*/, 1/*retain*/ );
 
     ping_ticker.attach_scheduled( MQTT_KEEPALIVE, [this]() {
       log.debug( F("ping") );

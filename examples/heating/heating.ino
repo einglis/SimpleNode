@@ -52,7 +52,9 @@ void setup( )
   wifi.begin();
   ntp.begin();
 
-  mqtt.set_client_id( MQTT_CLIENT );
+  //mqtt.salt( wifi.mac_ish() ); // no need for this project
+  mqtt.client_id( MQTT_CLIENT );
+  mqtt.pub_topic( MQTT_PUB_TOPIC );
   mqtt.begin( MQTT_HOST, MQTT_PORT );
 
   node::Logger::use_syslog( syslog );
