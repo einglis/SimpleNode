@@ -2,6 +2,22 @@
 
 // ----------------------------------------------------------------------------
 
+// We want to ensure this is only built for the ESP8266 but, more importantly,
+// only for the 4MB flash variant, to ensure we have space for OTA updates.
+
+// Add this line:
+//   compiler.cpp.extra_flags=-DESP8266_FLASH_BYTES={build.flash_size_bytes}
+// to this file (or one very like it):
+//   .arduino15/packages/esp8266/hardware/esp8266/3.0.2/platform.local.txt
+
+#ifndef ESP8266_FLASH_BYTES
+#error Check board settings; try "Generic ESP8266 Module"
+#elif ESP8266_FLASH_BYTES != 0x400000
+#error Check flash settings; try "4MB (FS:1MB OTA:~1019KB)"
+#endif
+
+// ----------------------------------------------------------------------------
+
 #define WIFI_HOSTNAME "heating"
 
 #define MQTT_CLIENT "heating"
