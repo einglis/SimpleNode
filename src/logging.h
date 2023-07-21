@@ -25,7 +25,8 @@ public:
     , log_level{ severity_debug }
   { }
 
-  void begin( const char* syslog_ip_as_string, int syslog_port = 514  /*syslog default*/ )
+  #define DEFAULT_SYSLOG_PORT 514
+  void begin( const char* syslog_ip_as_string, int syslog_port = DEFAULT_SYSLOG_PORT )
   {
     have_ip = ip.fromString( syslog_ip_as_string );
       // too early to use DNS, and don't want to do a lookup (each time) once in the main loop

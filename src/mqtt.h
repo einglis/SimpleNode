@@ -51,7 +51,8 @@ public:
     pub_topic_buf[pub_topic_len] = '\0';
   }
 
-  void begin( const char* mqtt_host, int mqtt_port )
+  #define DEFAULT_MQTT_PORT 1883
+  void begin( const char* mqtt_host, int mqtt_port = DEFAULT_MQTT_PORT )
   {
     log.infof( "client id \"%s\"", client_id_buf );
 
