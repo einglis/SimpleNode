@@ -16,11 +16,12 @@ using node::ButtonInput;
 // ----------------------------------------------------------------------------
 
 node::Configuration< app::Config > configuration( CONFIG_FILENAME );
-node::Mqtt mqtt( MQTT_HOST, MQTT_CLIENT );
-node::WifiPatterns patterns( app::outputs::status_pin );
+node::Mqtt mqtt;
+node::Syslog syslog;
 node::Uptime uptime;
 node::Webserver web;
 node::WiFi wifi;
+node::WifiPatterns patterns( app::outputs::status_pin );
 
 node::Logger app_log( "APP" );
 
@@ -82,12 +83,19 @@ void setup( )
   Serial.println( ESP.getResetReason() );
 
   configuration.begin();
+  syslog.begin( SYSLOG_HOST );
+  syslog.set_level( node::Syslog::severity_info );
+  node::Logger::use_syslog( syslog );
 
   uptime.begin();
   patterns.begin();
 
   wifi.begin();
-  mqtt.begin( );
+
+  mqtt.salt( wifi.mac_ish() ); // distinguish many sonoffs
+  mqtt.client_id( MQTT_CLIENT );
+  mqtt.pub_topic( MQTT_PUB_TOPIC );
+  mqtt.begin( MQTT_HOST, MQTT_PORT );
 
   webpages::register_default( web, uptime );
   webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );

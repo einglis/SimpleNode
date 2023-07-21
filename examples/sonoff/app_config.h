@@ -20,9 +20,9 @@
 
 #define WIFI_HOSTNAME "sonoff"
 
-#define MQTT_CLIENT "sonoff_client"
+#define MQTT_CLIENT "sonoff"
 #define MQTT_SUB_TOPIC "sonoff/cmd"
-#define MQTT_PUB_TOPIC "sonoff/status"
+#define MQTT_PUB_TOPIC "sonoff"
 
 #define PATTERN_WIFI_GOT_IP   0xFFFFFFFF // no blinking
 

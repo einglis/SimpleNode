@@ -22,7 +22,7 @@
 
 #define MQTT_CLIENT "heating"
 #define MQTT_SUB_TOPIC "heating/cmd"
-#define MQTT_PUB_TOPIC "heating/status"
+#define MQTT_PUB_TOPIC "heating"
 
 #define PATTERN_WIFI_GOT_IP   0x00000001
 

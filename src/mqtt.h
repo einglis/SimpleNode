@@ -46,7 +46,7 @@ public:
     pub_topic_len = std::min( strlen(topic), max_topic_len );
     memcpy( pub_topic_buf, topic, pub_topic_len);
     if (salty)
-      pub_topic_len += sprintf( pub_topic_buf + pub_topic_len, "_%08x", salty );
+      pub_topic_len += sprintf( pub_topic_buf + pub_topic_len, "/%08x", salty );
     pub_topic_buf[pub_topic_len++] = '/';
     pub_topic_buf[pub_topic_len] = '\0';
   }
@@ -58,7 +58,7 @@ public:
     client = new Adafruit_MQTT_Client( &my_wifi, mqtt_host, mqtt_port, client_id_buf, ""/*user*/, ""/*password*/);
       // need to pass all params, otherwise we default-select the non-client version.
 
-    const bool will_rc = client->will( make_pub_topic("connection"), "offline", MQTT_QOS_1/*at least once*/, 1/*retain*/ );
+    const bool will_rc = client->will( make_will_topic("connection"), "offline", MQTT_QOS_1/*at least once*/, 1/*retain*/ );
     if (!will_rc)
       log.warning( F("failed to set will") );
 
@@ -100,18 +100,19 @@ public:
     handlers.push_back( handler );
   }
 
-  // bool publish( const char* payload )
-  // {
-  //   return client->publish( pub_topic(""), payload );
-  // }
+  bool publish( const char* payload )
+  {
+    return client->publish( make_pub_topic(""), payload );
+  }
 
 
 private:
   WiFiClient my_wifi;
   uint32_t salty; // 0 == no salt
   char client_id_buf[32]; // needs to live as long as the client
+  char will_topic_buf[48]; // also needs to live as long as client
   Adafruit_MQTT_Client *client;
-  char pub_topic_buf[128];
+  char pub_topic_buf[64];
   int pub_topic_len;
   Ticker poll_ticker;
   Ticker ping_ticker;
@@ -137,6 +138,14 @@ private:
     memcpy( pub_topic_buf + pub_topic_len, tail, tail_len);
     pub_topic_buf[pub_topic_len + tail_len] = '\0';
     return pub_topic_buf;
+  }
+  const char* make_will_topic( const char *tail )
+  {
+    const char* will_topic = make_pub_topic( tail );
+    const size_t will_topic_len = std::min( strlen(will_topic), sizeof(will_topic_buf) - 1 );
+    memcpy( will_topic_buf, will_topic, will_topic_len );
+    will_topic_buf[will_topic_len] = '\0';
+    return will_topic_buf;
   }
 
   void mqtt_connected( )
