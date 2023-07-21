@@ -29,9 +29,9 @@ node::Webserver web;
 node::WiFi wifi;
 node::WifiPatterns patterns( app::outputs::status_pin );
 
-// ------------------------------------
-
 node::Logger app_log( "APP" );
+
+// ------------------------------------
 
 void setup( )
 {
@@ -43,8 +43,10 @@ void setup( )
   Serial.println( ESP.getResetReason() );
 
   configuration.begin();
-  syslog.begin( "10.23.1.2" );
+
+  syslog.begin( SYSLOG_HOST );
   syslog.set_level( node::Syslog::severity_info );
+  node::Logger::use_syslog( syslog );
 
   uptime.begin();
   patterns.begin();
@@ -52,12 +54,10 @@ void setup( )
   wifi.begin();
   ntp.begin();
 
-  //mqtt.salt( wifi.mac_ish() ); // no need for this project
   mqtt.client_id( MQTT_CLIENT );
   mqtt.pub_topic( MQTT_PUB_TOPIC );
   mqtt.begin( MQTT_HOST, MQTT_PORT );
 
-  node::Logger::use_syslog( syslog );
 
   webpages::register_default( web, uptime );
   webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );
