@@ -56,7 +56,7 @@ void setup( )
 
   mqtt.client_id( MQTT_CLIENT );
   mqtt.pub_topic( MQTT_PUB_TOPIC );
-  mqtt.begin( MQTT_HOST, MQTT_PORT );
+  mqtt.begin( MQTT_HOST );
 
 
   webpages::register_default( web, uptime );

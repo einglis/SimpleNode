@@ -92,10 +92,12 @@ void setup( )
 
   wifi.begin();
 
-  mqtt.salt( wifi.mac_ish() ); // distinguish many sonoffs
-  mqtt.client_id( MQTT_CLIENT );
-  mqtt.pub_topic( MQTT_PUB_TOPIC );
-  mqtt.begin( MQTT_HOST, MQTT_PORT );
+  char mqtt_salt[9]; // distinguish mutliple sonoffs by MAC
+  sprintf( mqtt_salt, "%04x", wifi.mac_ish() & 0xffff ); // two bytes is enough
+
+  mqtt.client_id( MQTT_CLIENT, mqtt_salt );
+  mqtt.pub_topic( MQTT_PUB_TOPIC, mqtt_salt );
+  mqtt.begin( MQTT_HOST );
 
   webpages::register_default( web, uptime );
   webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );

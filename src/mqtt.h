@@ -8,6 +8,15 @@
 #include "logging.h"
 #include "wifi.h"
 
+static void my_strncpy( char* &dst, const char* src, int &n ) // ugly :(
+{
+  while (dst && src && *src && n > 0)
+  {
+    *dst++ = *src++;
+    n--;
+  }
+}
+
 namespace node {
 
 class Mqtt
@@ -15,40 +24,39 @@ class Mqtt
 {
 public:
   Mqtt( )
-    : salty{ 0 }
-    , client_id_buf{ 0 }
+    : client_id_buf{ 0 }
     , pub_topic_buf{ 0 }
     , pub_topic_len{ 0 }
     { }
 
-  void salt( uint32_t s )
+  void client_id( const char* base, const char* salt = nullptr )
   {
-    salty = s;
+    char* bp = &client_id_buf[0];
+    int buf_left = sizeof(client_id_buf) - 1; // -1 for termination
+
+    my_strncpy( bp, base, buf_left );
+    if (salt && salt[0])
+    {
+      my_strncpy( bp, "_",  buf_left ); // concatenator
+      my_strncpy( bp, salt, buf_left );
+    }
+    *bp = '\0'; // my_strncpy does not terminate.
   }
 
-  void client_id( const char* id )
+  void pub_topic( const char* base, const char* salt = nullptr )
   {
-    const int salt_len = (salty) ? 9 : 0; // 9 for "_55AA1177"
-    const size_t max_id_len = sizeof(client_id_buf) - salt_len - 1; // -1 for termination
-    size_t id_len = std::min( strlen(id), max_id_len );
-    memcpy( client_id_buf, id, id_len );
-    if (salty)
-      id_len += sprintf( client_id_buf + id_len, "_%08x", salty );
-    client_id_buf[id_len] = '\0';
-  }
+    char* bp = &pub_topic_buf[0];
+    int buf_left = sizeof(pub_topic_buf) - 1; // -1 for termination
 
-  void pub_topic( const char* topic )
-  {
-    const int salt_len = (salty) ? 9 : 0; // 9 for "_55AA1177"
-    const size_t max_topic_len = sizeof(pub_topic_buf) / 2 - salt_len - 1;
-      // /2 to guarantee some space for further topic paths
-      // -1 for termination
-    pub_topic_len = std::min( strlen(topic), max_topic_len );
-    memcpy( pub_topic_buf, topic, pub_topic_len);
-    if (salty)
-      pub_topic_len += sprintf( pub_topic_buf + pub_topic_len, "/%08x", salty );
-    pub_topic_buf[pub_topic_len++] = '/';
-    pub_topic_buf[pub_topic_len] = '\0';
+    my_strncpy( bp, base, buf_left );
+    if (salt && salt[0])
+    {
+      my_strncpy( bp, "/",  buf_left ); // separator
+      my_strncpy( bp, salt, buf_left );
+    }
+    *bp = '\0';
+
+    pub_topic_len = strlen(pub_topic_buf); // could calculate, but this seems cleaner somehow.
   }
 
   #define DEFAULT_MQTT_PORT 1883
@@ -109,7 +117,6 @@ public:
 
 private:
   WiFiClient my_wifi;
-  uint32_t salty; // 0 == no salt
   char client_id_buf[32]; // needs to live as long as the client
   char will_topic_buf[48]; // also needs to live as long as client
   Adafruit_MQTT_Client *client;
@@ -134,18 +141,25 @@ private:
 
   const char* make_pub_topic( const char *tail )
   {
-    const size_t max_tail_len = sizeof(pub_topic_buf) - pub_topic_len - 1; // -1 for termination
-    const size_t tail_len = std::min( strlen(tail), max_tail_len );
-    memcpy( pub_topic_buf + pub_topic_len, tail, tail_len);
-    pub_topic_buf[pub_topic_len + tail_len] = '\0';
+    char* bp = &pub_topic_buf[pub_topic_len];
+    int buf_left = sizeof(pub_topic_buf) - pub_topic_len - 1; // -1 for termination
+
+    my_strncpy( bp, "/",  buf_left ); // separator
+    my_strncpy( bp, tail, buf_left );
+    *bp = '\0';
+
     return pub_topic_buf;
   }
   const char* make_will_topic( const char *tail )
   {
-    const char* will_topic = make_pub_topic( tail );
-    const size_t will_topic_len = std::min( strlen(will_topic), sizeof(will_topic_buf) - 1 );
-    memcpy( will_topic_buf, will_topic, will_topic_len );
-    will_topic_buf[will_topic_len] = '\0';
+    char* bp = &will_topic_buf[0];
+    int buf_left = sizeof(will_topic_buf) - 1; // -1 for termination
+
+    my_strncpy( bp, pub_topic_buf, buf_left );
+    my_strncpy( bp, "/",  buf_left ); // separator
+    my_strncpy( bp, tail, buf_left );
+    *bp = '\0';
+
     return will_topic_buf;
   }
 
