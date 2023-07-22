@@ -66,7 +66,7 @@ void button_event( ButtonInput::Event e, int count ) // called in SYS context
     {
       char buf[32];
       sprintf( buf, "%s %d", event_name, count );
-      mqtt.publish( buf );
+      mqtt.publish( "event", buf );
     }
   } );
 }

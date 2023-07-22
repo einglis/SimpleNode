@@ -109,9 +109,9 @@ public:
     handlers.push_back( handler );
   }
 
-  bool publish( const char* payload )
+  bool publish( const char* topic, const char* payload )
   {
-    return client->publish( make_pub_topic(""), payload );
+    return client->publish( make_pub_topic(topic), payload );
   }
 
 
