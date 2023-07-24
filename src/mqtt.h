@@ -59,6 +59,17 @@ public:
     pub_topic_len = strlen(pub_topic_buf); // could calculate, but this seems cleaner somehow.
   }
 
+  void sub_topic( const char* base, const char* tail )
+  {
+    sub_topic( base, nullptr, tail );
+  }
+
+  void sub_topic( const char* base, const char* salt, const char* tail )
+  {
+    subs.push_back( std::make_shared<MqttSubscription>( client, base, salt, tail ) );
+  }
+
+
   #define DEFAULT_MQTT_PORT 1883
   void begin( const char* mqtt_host, int mqtt_port = DEFAULT_MQTT_PORT )
   {
@@ -75,14 +86,9 @@ public:
     if (!keepalive_rc)
       log.warning( F("failed to set keepalive") );
 
-
-    auto sub = std::make_shared<Adafruit_MQTT_Subscribe>( client, MQTT_SUB_TOPIC );
-
-    const bool sub_rc = client->subscribe( sub.get() );
-    if (!sub_rc)
-      log.warning( F("failed to subscribe to a topic") );
-    else
-      subs.push_back( sub );
+    for (auto s : subs)
+      if (!client->subscribe( &s->sub ))
+        log.warning( F("failed to subscribe to a topic") );
 
     wifi_observer_register( *this );
   }
@@ -124,7 +130,30 @@ private:
   int pub_topic_len;
   Ticker poll_ticker;
   Ticker ping_ticker;
-  std::vector< std::shared_ptr<Adafruit_MQTT_Subscribe> > subs;
+
+  struct MqttSubscription
+  {
+    MqttSubscription( Adafruit_MQTT_Client *client, const char* base, const char* salt, const char* tail )
+      : sub_topic_buf{ 0 }
+      , sub{ client, sub_topic_buf }
+    {
+      char* bp = &sub_topic_buf[0];
+      int buf_left = sizeof(sub_topic_buf) - 1; // -1 for termination
+
+      my_strncpy( bp, base, buf_left );
+      my_strncpy( bp, "/",  buf_left ); // separator
+      if (salt && salt[0])
+      {
+        my_strncpy( bp, salt, buf_left );
+        my_strncpy( bp, "/",  buf_left ); // separator
+      }
+      my_strncpy( bp, tail, buf_left );
+      *bp = '\0';
+    }
+    char sub_topic_buf[64];
+    Adafruit_MQTT_Subscribe sub;
+  };
+  std::vector< std::shared_ptr<MqttSubscription> > subs;
 
   struct MqttHandler
   {
@@ -137,7 +166,7 @@ private:
     const size_t stem_len;
     const handler_fn_t fn;
   };
-  std::vector<std::shared_ptr<MqttHandler>> handlers;
+  std::vector< std::shared_ptr<MqttHandler> > handlers;
 
   const char* make_pub_topic( const char *tail )
   {
