@@ -59,14 +59,30 @@ public:
     pub_topic_len = strlen(pub_topic_buf); // could calculate, but this seems cleaner somehow.
   }
 
+  void sub_topic( const char* base, const char* salt, const char* tail )
+  {
+    auto sub = std::make_shared<MqttSubscription>( );
+
+    // do this here, rather than in the MqttSubscription, just to keep similar operations near one another
+    char* bp = &sub->sub_topic_buf[0];
+    int buf_left = sizeof(sub->sub_topic_buf) - 1; // -1 for termination
+
+    my_strncpy( bp, base, buf_left );
+    if (salt && salt[0])
+    {
+      my_strncpy( bp, "/",  buf_left ); // separator
+      my_strncpy( bp, salt, buf_left );
+    }
+    my_strncpy( bp, "/",  buf_left ); // separator
+    my_strncpy( bp, tail, buf_left );
+    *bp = '\0';
+
+    subscriptions.push_back( sub );
+  }
+
   void sub_topic( const char* base, const char* tail )
   {
     sub_topic( base, nullptr, tail );
-  }
-
-  void sub_topic( const char* base, const char* salt, const char* tail )
-  {
-    subs.push_back( std::make_shared<MqttSubscription>( client, base, salt, tail ) );
   }
 
 
@@ -86,9 +102,15 @@ public:
     if (!keepalive_rc)
       log.warning( F("failed to set keepalive") );
 
-    for (auto s : subs)
-      if (!client->subscribe( &s->sub ))
+    for (auto s : subscriptions)
+    {
+      auto sub = std::make_unique<Adafruit_MQTT_Subscribe>( client, s->sub_topic_buf );
+      const bool sub_rc = client->subscribe( sub.get() );
+      if (!sub_rc)
         log.warning( F("failed to subscribe to a topic") );
+      else
+        s->sub = std::move(sub);
+    }
 
     wifi_observer_register( *this );
   }
@@ -133,27 +155,10 @@ private:
 
   struct MqttSubscription
   {
-    MqttSubscription( Adafruit_MQTT_Client *client, const char* base, const char* salt, const char* tail )
-      : sub_topic_buf{ 0 }
-      , sub{ client, sub_topic_buf }
-    {
-      char* bp = &sub_topic_buf[0];
-      int buf_left = sizeof(sub_topic_buf) - 1; // -1 for termination
-
-      my_strncpy( bp, base, buf_left );
-      my_strncpy( bp, "/",  buf_left ); // separator
-      if (salt && salt[0])
-      {
-        my_strncpy( bp, salt, buf_left );
-        my_strncpy( bp, "/",  buf_left ); // separator
-      }
-      my_strncpy( bp, tail, buf_left );
-      *bp = '\0';
-    }
     char sub_topic_buf[64];
-    Adafruit_MQTT_Subscribe sub;
+    std::unique_ptr<Adafruit_MQTT_Subscribe> sub;
   };
-  std::vector< std::shared_ptr<MqttSubscription> > subs;
+  std::vector< std::shared_ptr<MqttSubscription> > subscriptions;
 
   struct MqttHandler
   {

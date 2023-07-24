@@ -97,8 +97,8 @@ void setup( )
 
   mqtt.client_id( MQTT_CLIENT, mqtt_salt );
   mqtt.pub_topic( MQTT_PUB_TOPIC, mqtt_salt );
-  mqtt.sub_topic( MQTT_SUB_TOPIC, mqtt_salt, "cmd" );
   mqtt.sub_topic( MQTT_SUB_TOPIC, "all", "cmd" );
+  mqtt.sub_topic( MQTT_SUB_TOPIC, mqtt_salt, "cmd" );
   mqtt.begin( MQTT_HOST );
 
   webpages::register_default( web, uptime );
