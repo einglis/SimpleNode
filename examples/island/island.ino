@@ -1,16 +1,21 @@
 
 #include "app_config.h"
-#include "simple_node.h"
+
+#include "build.gen.h"
+namespace app {
+const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
+};
+
+#include <simple_node.h>
 
 #include "pages/config.h"
 #include "pages/default.h"
-#include "pages/demos.h"
 #include "pages/update.h"
 
 // ----------------------------------------------------------------------------
 
 node::Configuration< app::Config > configuration( CONFIG_FILENAME );
-node::Mqtt mqtt;
+node::Mqtt mqtt( MQTT_HOST, MQTT_CLIENT );
 node::Ntp ntp;
 node::WifiPatterns patterns( app::outputs::status_pin );
 node::Pixels pixels( app::outputs::pixels_pin, NUM_PIXELS, app::pixels_update );
@@ -26,7 +31,7 @@ void setup( )
   Serial.println("");
   Serial.println("");
   Serial.println("");
-  Serial.println( node::build_version );
+  Serial.println( app::build_version );
   Serial.println( ESP.getResetReason() );
 
   configuration.begin();
@@ -36,12 +41,11 @@ void setup( )
   pixels.begin();
 
   wifi.begin();
-  ntp.begin( 11 /*report interval in seconds*/ );
-  mqtt.begin( );
+  ntp.begin();
+  mqtt.begin();
 
   webpages::register_default( web, uptime );
   webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );
-  webpages::register_demos( web );
   webpages::register_update( web );
   web.begin();
 
@@ -49,17 +53,4 @@ void setup( )
 }
 
 void loop( )
-{
-  static node::Logger log( "LOOP" );
-  static long last = millis();
-  static int loops = 0;
-
-  loops++;
-  long now = millis();
-  if (now - last > 7000) // magic, but arbitrary number
-  {
-    log.debugf( "loop rate is about %d Hz", loops * 1000 / (now-last) );
-    loops = 0;
-    last = now;
-  }
-}
+{ }

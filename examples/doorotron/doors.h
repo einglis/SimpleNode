@@ -1,8 +1,4 @@
 
-node::Logger app_log( "APP" );
-
-// ----------------------------------------------------------------------------
-
 void door_open_led( int index, bool on )
 {
   static int state = 0;
@@ -127,19 +123,5 @@ private:
 };
 
 int Door::next_index = 0;
-
-// ----------------------------------------------------------------------------
-
-Door a( "doorA", app::inputs::switch_a_pin, app::outputs::button_a_pin );
-Door b( "doorB", app::inputs::switch_b_pin, app::outputs::button_b_pin );
-
-void app_setup( )
-{
-  pinMode( app::outputs::led_1_pin, OUTPUT );
-  pinMode( app::outputs::led_2_pin, OUTPUT );
-
-  a.begin();
-  b.begin();
-}
 
 // ----------------------------------------------------------------------------

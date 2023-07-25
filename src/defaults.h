@@ -12,15 +12,16 @@
 #define WIFI_HOSTNAME "simple_node"
 #endif
 
+#ifndef SYSLOG_HOST
+#define SYSLOG_HOST "10.23.1.2"
+#endif
+
 #ifndef NTP_HOST
 #define NTP_HOST "europe.pool.ntp.org"
 #endif
 
 #ifndef MQTT_HOST
 #define MQTT_HOST PRIVATE_MQTT_HOST
-#endif
-#ifndef MQTT_PORT
-#define MQTT_PORT 1883
 #endif
 #ifndef MQTT_CLIENT
 #define MQTT_CLIENT "simple_node"

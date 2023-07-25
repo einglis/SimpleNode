@@ -36,7 +36,8 @@ public:
 
   void begin()
   {
-    log.infof( "MAC: %s", ::WiFi.macAddress().c_str() );
+    ::WiFi.macAddress( mac );
+    log.infof( "MAC: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
 
     ::WiFi.hostname( WIFI_HOSTNAME );
     ::WiFi.persistent(false); // don't stash config in Flash
@@ -53,7 +54,8 @@ public:
       // _and_ try to reconnect if the connection is lost.
   }
 
-  IPAddress ip() { return my_ip; }
+  IPAddress ip() const { return my_ip; }
+  uint32_t mac_ish() const { return (mac[2] << 24) | (mac[3] << 16) | (mac[4] << 8) | (mac[5] << 0); }
 
 private:
   std::vector< WiFiEventHandler > handlers;
@@ -98,6 +100,7 @@ private:
   }
 
   Logger& log;
+  uint8_t mac[8];
 
   static std::vector< std::reference_wrapper< WifiObserver > > observers; // declaration...
   friend void WifiObserver::wifi_observer_register( WifiObserver& );

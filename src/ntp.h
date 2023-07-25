@@ -28,6 +28,7 @@ public:
     wifi_observer_register( *this );
   }
 
+  bool epoch_valid( ) { return client.isTimeSet(); }
   long int epoch_time( ) { return client.getEpochTime(); }
 
   static int epoch_day( long int e )  { return (e / 86400L + 4) % 7; } // 0 == sunday

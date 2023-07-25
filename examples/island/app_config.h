@@ -10,14 +10,28 @@
 
 #define PATTERN_WIFI_GOT_IP       0x00000000 // no blinking
 
+#define CONFIG_FILENAME "/island_config.bin"
+
 // ----------------------------------------------------------------------------
 
 namespace app {
 
+struct Config
+{
+  union {
+    struct {
+      int counter;
+      int power;
+      int pattern;
+    };
+    uint8_t pad[64];
+  };
+};
+
 namespace outputs {
   enum {
     status_pin = LED_BUILTIN, // aka 2
-    pixels_pin = 14, // note: not the same as devboard
+    pixels_pin = 14,
     power_pin  = 13,
   };
 }

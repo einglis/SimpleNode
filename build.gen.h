@@ -2,10 +2,6 @@
 // This file will be auto-(re-)generated on build.
 // But Arduino needs it to be there in the first place, hence its presence in the repo.
 
-#define XXX_BUILD_DATE "Placeholder date"
-#define XXX_BUILD_REPO_VERSION "Placeholder version"
-
-
 // One-time setup instructions:
 
 // Create `platform.local.txt` in the same folder as `platform.txt`,

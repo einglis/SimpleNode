@@ -24,6 +24,9 @@ void toggle_power( )
 
 void new_power( bool pwr )
 {
+  configuration.rw().power = pwr;
+  configuration.save();
+
   pwr_target_on = pwr;
 
   power_fade_ticker.attach_ms_scheduled( 5, []() {
@@ -65,6 +68,9 @@ Ticker transition_ticker;
 
 void new_pattern( int next_pattern )
 {
+  configuration.rw().pattern = next_pattern;
+  configuration.save();
+
   if (next_pattern >= (int)pixel_patterns.size())
   {
     app_log.warningf( "unknown pattern %d", next_pattern );
@@ -98,7 +104,7 @@ void new_pattern( int next_pattern )
 
 void cycle_pattern( )
 {
-  new_pattern( (curr_pattern + 1) % pixel_patterns.size() ); 
+  new_pattern( (curr_pattern + 1) % pixel_patterns.size() );
 }
 
 uint32_t mix( uint32_t a, uint32_t b, unsigned int amnt)
@@ -118,6 +124,27 @@ uint32_t mix( uint32_t a, uint32_t b, unsigned int amnt)
     return x;
 }
 
+uint32_t fudge( int i, uint32_t c )
+{
+  // some replacement pixels are brighter than the old ones, so let's
+  // mangle their brightness a bit to bring them more into line.
+
+  if (i >= NUM_PIXELS - 4)
+  {
+    uint32_t r = (c & 0xff0000) >> 16;
+    uint32_t g = (c & 0x00ff00) >>  8;
+    uint32_t b = (c & 0x0000ff) >>  0;
+
+    r *= 0.45;
+    g *= 0.31;
+    b *= 0.35;
+
+    c = (r << 16) | (g << 8) | (b << 0);
+  }
+
+  return c;
+}
+
 namespace app {
 
 bool pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32_t)> pixel )
@@ -132,7 +159,7 @@ bool pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32_t)>
           pattern->advance( pattern_phase_inc );
           pattern_outgoing->advance( pattern_phase_inc );
           for (auto i = 0; i < num_pixels; i++)
-              pixel( i, mix(pattern_outgoing->pixel(i),pattern->pixel(i),transition_count) );
+              pixel( i, fudge( i, mix(pattern_outgoing->pixel(i),pattern->pixel(i),transition_count) ) );
       }
   }
   else
@@ -141,7 +168,7 @@ bool pixels_update( uint16_t num_pixels, std::function<void(uint16_t, uint32_t)>
       {
           pattern->advance( pattern_phase_inc );
           for (auto i = 0; i < num_pixels; i++)
-              pixel( i, pattern->pixel(i) );
+              pixel( i, fudge( i, pattern->pixel(i) ) );
       }
   }
 
@@ -196,4 +223,13 @@ void app_setup( )
   mqtt.on( "toggle", [](auto, auto){ toggle_power(); } );
 
   //mqtt.on( "", [](auto, auto){ /*catchall*/ } );
+
+  if (!configuration.load() || !configuration.is_valid())
+    memset( &configuration.rw(), 0, sizeof(app::Config));
+
+  configuration.rw().counter++;
+  configuration.save();
+
+  new_power(configuration.ro().power);
+  curr_pattern = prev_pattern = configuration.ro().pattern;
 }

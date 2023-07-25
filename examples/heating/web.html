@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+<body>
+<br>
+<br>
+<br>
+<br>
+<div>
+<button >&lt; Monday</button>
+<b style="font-family: sans-serif;">Tuesday</b>
+<button>Wednesday &gt;</button>
+<br>
+<br>
+<input type="radio" id="x">One day, all channels, all stats
+<br>
+<input type="radio" id="x">One channel, all days, all stats
+<br>
+<input type="radio" id="x">One stat, all days, all channels
+
+<canvas id="c2"></canvas>
+<canvas id="c1"></canvas>
+</div>
+
+
+<script>
+//-----------------------------------------------------------------------------
+
+const length_of_day = 24 * 60; // 1440
+
+const blob_width = 12;
+const row_spacing = 30;
+
+
+// ------------------------------------
+
+function ColourToWeb( c ) {
+    var x = 0x1000000 + c;
+    return '#' + x.toString(16).slice(-6) ;
+}
+
+//-------------------------------------
+
+function draw( canvas, ctx )
+{
+    var i;
+
+    ctx.translate(20,50);
+    ctx.scale(1,1);
+
+
+      // complete day in grey
+      ctx.fillStyle = ColourToWeb( 0xdddddd );
+      ctx.fillRect( 0, 0, 1440, 10);
+
+      // alternating hours in lighter grey
+      ctx.fillStyle = ColourToWeb( 0xeeeeee );
+      for (x = 0; x < 1440; x += 120) {
+        ctx.fillRect( x, 0, 60, 10);
+      }
+
+      // hour markers
+      ctx.strokeStyle = ColourToWeb( 0x808080 );
+      for (x = 0; x <= 1440; x += 60) {
+        ctx.beginPath();
+        ctx.moveTo( x, -5 );
+        ctx.lineTo( x, 15 );
+        ctx.stroke();
+      }
+
+      // hour indicies
+      ctx.font = "12px arial";
+      ctx.textAlign = "center"
+      ctx.fillStyle = ColourToWeb( 0x000000 );
+
+      for (x = 0, hh = 0; x <= 1440; x += 60, hh++) {
+        if (1) {
+          ctx.fillText(hh, x, 30);
+        } else {
+          suffix = (hh < 12 || hh == 24) ? " am" : " pm";
+          ctx.fillText((((hh+11)%12)+1) + suffix, x, 30);  // awful arithmetic to convert 0 am/pm to 12 am/pm
+        }
+      }
+
+
+      // one possible activation style
+      ctx.fillStyle = ColourToWeb( 0xaa0000 ); // reddy
+      ctx.fillRect( 200, -5, 367, 20);
+
+      ctx.lineWidth=2;
+      ctx.lineCap = "round";
+      ctx.font = "bold 12px arial";
+      ctx.strokeStyle = ColourToWeb( 0x880000 ); // darker reddy
+
+      ctx.beginPath();
+      ctx.moveTo( 200, -5 );
+      ctx.lineTo( 200, 35 );
+      ctx.stroke();
+      ctx.fillText("3:20 am", 200, 50);
+
+      ctx.beginPath();
+      ctx.moveTo( 567, -5 );
+      ctx.lineTo( 567, 35 );
+      ctx.stroke();
+      ctx.fillText("9:27 am", 567, 50);
+
+
+
+      // another possible activation style
+      ctx.fillStyle = ColourToWeb( 0x00aa00 ); // green
+      ctx.strokeStyle = ColourToWeb( 0x008800 ); // darker green
+      ctx.beginPath();
+      ctx.arc(  900+10, 5, 10,  0.5*Math.PI, -0.5 * Math.PI);
+      ctx.arc( 1045-10, 5, 10, -0.5*Math.PI,  0.5 * Math.PI);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.lineWidth=2;
+      ctx.lineCap = "round";
+      ctx.font = "bold 12px arial";
+
+      ctx.fillStyle = ColourToWeb( 0x008800 ); // darker green
+      ctx.clearRect( 900-3, 15, 6, 20);
+      ctx.fillRect( 900-1, 5, 2, 30);
+      ctx.fillText("15:00", 900, 50);
+
+      ctx.fillRect( 1045-1, 5, 2, 30);
+      ctx.fillText("17:25", 1045, 50);
+      
+      ctx.fillStyle = ColourToWeb( 0xffffff ); // white
+      ctx.fillText("15:00 - 17:25", (900+1045)/2, 10);
+
+
+    // ctx.scale(1,-1);
+    // ctx.translate(-canvas.width/2,-canvas.height/2);
+
+    // fn.advance();
+}
+
+//-----------------------------------------------------------------------------
+
+var blobs = [];
+
+function blob2( start, end ) 
+{
+  const path = new Path2D();
+//  path.arc( start+blob_width, 0, blob_width,  0.5*Math.PI, -0.5 * Math.PI);
+//  path.arc(   end-blob_width, 0, blob_width, -0.5*Math.PI,  0.5 * Math.PI);
+
+  const half = blob_width/2;
+  path.arc( start+half, -half, half,  1.0 * Math.PI, 1.5 * Math.PI);
+  path.arc(   end-half, -half, half,  1.5 * Math.PI,   0 * Math.PI);
+  path.arc(   end-half,  half, half,    0 * Math.PI, 0.5 * Math.PI);
+  path.arc( start+half,  half, half,  0.5 * Math.PI, 1.0 * Math.PI);
+  path.closePath();
+  return path
+}
+
+var channels = [];
+
+class Sense
+{
+  constructor( name )
+  {
+    this.name = name;
+    this.blobs = [];
+  }
+}
+
+if (1) {
+
+  var c1 = { name: "Monday", colour:'IndianRed', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+  var c1 = { name: "Tuesday", colour:'IndianRed', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+  var c1 = { name: "Wednesday", colour:'IndianRed', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+  var c1 = { name: "Thursday", colour:'IndianRed', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+  var c1 = { name: "Frday", colour:'IndianRed', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+  var c1 = { name: "Saturday", colour:'Peru', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+  var c1 = { name: "Sunday", colour:'Peru', senses:[] };
+  c1.senses.push( new Sense( "Nest" ) );
+  c1.senses.push( new Sense( "Stat2" ) );
+  c1.senses.push( new Sense( "ON" ) );
+  channels.push(c1);
+
+} else {
+
+var c0 = { name: "Hot Water", colour:'CornflowerBlue', senses:[] };
+c0.senses.push( new Sense( "Cylinder" ) );
+channels.push(c0);
+
+var c1 = { name: "Downstairs", colour:'IndianRed', senses:[] };
+c1.senses.push( new Sense( "Nest" ) );
+c1.senses.push( new Sense( "Stat2" ) );
+c1.senses.push( new Sense( "ON" ) );
+channels.push(c1);
+
+var c2 = { name: "Upstairs", colour:'IndianRed', senses:[] };
+c2.senses.push( new Sense( "Nest" ) );
+c2.senses.push( new Sense( "Stat2" ) );
+c2.senses.push( new Sense( "ON" ) );
+channels.push(c2);
+
+var c3 = { name: "Bathrooms", colour:'Peru', senses:[] };
+c3.senses.push( new Sense( "Nest" ) );
+c3.senses.push( new Sense( "Stat2" ) );
+c3.senses.push( new Sense( "ON" ) );
+channels.push(c3);
+
+}
+
+console.log(channels);
+
+channels.forEach( (c) => {
+  c.senses.forEach( (s) => {
+    var start = Math.floor( Math.random() * length_of_day );
+    var end = Math.floor( Math.random() * (length_of_day - start) + start );
+    s.blobs.push( blob2(start, end) );
+  } );
+} );
+
+    
+
+function draw_axes( ctx )
+{
+  // horizontal axis
+  ctx.strokeStyle = 'LightGray';
+  ctx.beginPath();
+  ctx.moveTo( 0 - 10, 5 ); // +/- 10 for slight overhang
+  ctx.lineTo( length_of_day + 10, 5 );
+  ctx.stroke();
+
+  // vertical axis / hour markers
+  ctx.strokeStyle = 'LightGray';
+  for (x = 0; x <= length_of_day; x += 3*60) {
+    ctx.beginPath();
+    ctx.moveTo( x, 0 );
+    ctx.lineTo( x, 1000 );
+    ctx.stroke();
+  }
+
+  // hour indicies
+  ctx.font = "12px arial";
+  ctx.textAlign = "center"
+  ctx.fillStyle = ColourToWeb( 0x000000 );
+
+  for (x = 0, hh = 0; x <= length_of_day; x += 60, hh++) {
+    if (0) {
+      ctx.fillText(hh, x, -5);
+    } else {
+      suffix = (hh < 12 || hh == 24) ? " am" : " pm";
+      ctx.fillText((((hh+11)%12)+1) + suffix, x, -6);  // awful arithmetic to convert 0 am/pm to 12 am/pm
+    }
+  }
+}
+
+function draw2( canvas, ctx )
+{
+  ctx.clearRect( 0, 0, canvas.width, canvas.height );
+  ctx.save();
+
+  // shift the main axes right and down to leave room for legends
+  ctx.translate(200,50);
+  ctx.scale(1,1);
+
+  draw_axes(ctx);
+      
+
+  // shift the rows down with respect to the horizonal axis
+  ctx.translate(0,70);
+
+  channels.forEach((chan) => {
+
+    ctx.fillStyle = chan.colour;
+    ctx.font = "bold 24px arial";
+    ctx.textAlign = "right"
+    ctx.fillText(chan.name, -15, -30);
+
+    chan.senses.forEach((s, i) => {
+      ctx.font = "bold 14px arial";
+      ctx.textAlign = "right"
+      ctx.fillText(s.name, 0 - 10, 4);
+      //ctx.textAlign = "left"
+      //ctx.fillText(s.name, length_of_day + 10, 0);
+
+      ctx.strokeStyle = chan.colour;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo( 0, 0 );
+      ctx.lineTo( length_of_day, 0 );
+      ctx.stroke();
+
+      //ctx.strokeStyle = 'black';
+      ctx.lineWidth = 1;
+      s.blobs.forEach((b) => {
+        ctx.fill(b);
+        ctx.stroke(b);
+      });
+
+      ctx.translate(0,row_spacing);
+    });
+
+    ctx.translate(0,row_spacing * 1.2); // bonus row between channels
+  });
+
+
+  ctx.restore();
+}
+
+
+//-----------------------------------------------------------------------------
+
+var patterns = [];
+patterns.push( { "id": "c1" } );
+patterns.push( { "id": "c2" } );
+
+patterns.forEach( function( item, index ) {
+    item.canvas = document.getElementById( item.id );
+      item.canvas.width = 1920;
+      item.canvas.height = 1080;
+      item.canvas.style = "background: #fff;"// + " border:1px solid #d3d3d3;"
+
+    item.context = item.canvas.getContext( "2d" );
+} );
+
+//-------------------------------------
+
+( function paint( )
+{
+//    patterns.forEach( function( item, index ) {
+//        item.context.clearRect( 0, 0, item.canvas.width, item.canvas.height );
+//        draw( item.canvas, item.context );
+//} )
+
+//patterns[0].context.clearRect( 0, 0, patterns[0].canvas.width, patterns[0].canvas.height );
+//draw(patterns[0].canvas, patterns[0].context);
+
+//patterns[1].context.clearRect( 0, 0, patterns[1].canvas.width, patterns[1].canvas.height );
+draw2(patterns[1].canvas, patterns[1].context);
+
+    //requestAnimationFrame( paint );
+} )();
+
+
+
+document.getElementById( "c2" ).addEventListener('mousemove', function(event) {
+  event = event || window.event;
+  var ctx = document.getElementById("c2").getContext("2d")
+
+  var highlight = -1;
+  for (var i = blobs.length - 1; i >= 0; i--){  
+    if (blobs[i] && ctx.isPointInPath(blobs[i], event.offsetX-20, event.offsetY-50-30)) {
+      highlight = i;
+      break;
+    }
+  }
+
+  for (var i = blobs.length - 1; i >= 0; i--){  
+    if (i == highlight) {
+      blobs[i].fish="pie";
+    } else {
+      blobs[i].fish="chips";
+    }
+
+  }  
+  draw2(patterns[1].canvas, patterns[1].context);
+})
+
+//-----------------------------------------------------------------------------
+</script>
+
+</body>
+</html>
