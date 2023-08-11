@@ -43,19 +43,32 @@ struct WifiPatterns
 {
   WifiPatterns( int pin )
     : Patterns( pin )
+    , got_ip{ false }
+    , idle_pattern{ PATTERN_WIFI_GOT_IP }
   {
     wifi_down();
   }
 
-  virtual void wifi_down( ) { set( PATTERN_WIFI_DISCONNECTED ); };
-  virtual void wifi_up( ) { set( PATTERN_WIFI_CONNECTED ); };
-  virtual void wifi_got_ip( IPAddress ) { set( PATTERN_WIFI_GOT_IP ); };
+  virtual void wifi_down( ) { got_ip = false; set( PATTERN_WIFI_DISCONNECTED ); };
+  virtual void wifi_up( )   { got_ip = false; set( PATTERN_WIFI_CONNECTED ); };
+  virtual void wifi_got_ip( IPAddress ) { got_ip = true; set( idle_pattern ); };
+
+  void set_idle( uint32_t p ) // the state we nominally sit in most of the time; hence 'idle'
+  {
+    idle_pattern = p;
+    if (got_ip)
+      set( idle_pattern );
+  }
 
   void begin( )
   {
     Patterns::begin();
     wifi_observer_register( *this );
   }
+
+private:
+  bool got_ip;
+  uint32_t idle_pattern;
 };
 
 } // node
