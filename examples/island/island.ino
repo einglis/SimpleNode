@@ -15,7 +15,7 @@ const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 // ----------------------------------------------------------------------------
 
 node::Configuration< app::Config > configuration( CONFIG_FILENAME );
-node::Mqtt mqtt( MQTT_HOST, MQTT_CLIENT );
+node::Mqtt mqtt;
 node::Ntp ntp;
 node::WifiPatterns patterns( app::outputs::status_pin );
 node::Pixels pixels( app::outputs::pixels_pin, NUM_PIXELS, app::pixels_update );
@@ -42,7 +42,11 @@ void setup( )
 
   wifi.begin();
   ntp.begin();
-  mqtt.begin();
+
+  mqtt.client_id( MQTT_CLIENT );
+  mqtt.pub_topic( MQTT_PUB_TOPIC );
+  mqtt.sub_topic( MQTT_SUB_TOPIC, "cmd" );
+  mqtt.begin( MQTT_HOST );
 
   webpages::register_default( web, uptime );
   webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );
