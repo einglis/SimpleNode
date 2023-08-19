@@ -20,7 +20,7 @@
 
 #define WIFI_HOSTNAME "sonoff"
 
-#define MQTT_CLIENT "sonoff"
+#define MQTT_CLIENT_ID "sonoff" // +salt
 #define MQTT_PUB_TOPIC "sonoff" // +salt
 #define MQTT_SUB_TOPIC "sonoff" // +salt
 

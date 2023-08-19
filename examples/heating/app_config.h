@@ -20,7 +20,9 @@
 
 #define WIFI_HOSTNAME "heating"
 
-#define MQTT_CLIENT "heating"
+#define CONFIG_FILENAME "/heating_config.bin"
+
+#define MQTT_CLIENT_ID "heating"
 #define MQTT_SUB_TOPIC "heating/cmd"
 #define MQTT_PUB_TOPIC "heating"
 

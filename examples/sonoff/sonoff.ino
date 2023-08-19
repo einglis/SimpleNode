@@ -85,7 +85,7 @@ void setup( )
   Serial.println( ESP.getResetReason() );
 
   configuration.begin();
-  syslog.begin( SYSLOG_HOST );
+  syslog.begin( SYSLOG_IP );
   syslog.set_level( node::Syslog::severity_info );
   node::Logger::use_syslog( syslog );
 
@@ -97,7 +97,7 @@ void setup( )
   char mqtt_salt[9]; // distinguish mutliple sonoffs by MAC
   sprintf( mqtt_salt, "%04x", wifi.mac_ish() & 0xffff ); // two bytes is enough
 
-  mqtt.client_id( MQTT_CLIENT, mqtt_salt );
+  mqtt.client_id( MQTT_CLIENT_ID, mqtt_salt );
   mqtt.pub_topic( MQTT_PUB_TOPIC, mqtt_salt );
   mqtt.sub_topic( MQTT_SUB_TOPIC, "all", "cmd" );
   mqtt.sub_topic( MQTT_SUB_TOPIC, mqtt_salt, "cmd" );

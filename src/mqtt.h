@@ -19,6 +19,12 @@ static void my_strncpy( char* &dst, const char* src, int &n ) // ugly :(
 
 namespace node {
 
+#ifndef MQTT_KEEPALIVE
+#define MQTT_KEEPALIVE  60  // timeout is set to 1.5x this value
+#endif
+
+// ----------------------------------------------------------------------------
+
 class Mqtt
   : public node::WifiObserver
 {

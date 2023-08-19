@@ -12,8 +12,8 @@
 #define WIFI_HOSTNAME "simple_node"
 #endif
 
-#ifndef SYSLOG_HOST
-#define SYSLOG_HOST "10.23.1.2"
+#ifndef SYSLOG_IP
+#define SYSLOG_IP PRIVATE_SYSLOG_IP  // must be an IP, not a hostname
 #endif
 
 #ifndef NTP_HOST
@@ -22,32 +22,6 @@
 
 #ifndef MQTT_HOST
 #define MQTT_HOST PRIVATE_MQTT_HOST
-#endif
-#ifndef MQTT_CLIENT
-#define MQTT_CLIENT "simple_node"
-#endif
-#ifndef MQTT_KEEPALIVE
-#define MQTT_KEEPALIVE 60  // timeout set to 1.5x this value
-#endif
-#ifndef MQTT_SUB_TOPIC
-#define MQTT_SUB_TOPIC "simple/cmd"
-#endif
-#ifndef MQTT_PUB_TOPIC
-#define MQTT_PUB_TOPIC "simple/status"
-#endif
-
-#ifndef PATTERN_PIN
-#define PATTERN_PIN LED_BUILTIN
-#endif
-
-#ifndef PATTERN_WIFI_DISCONNECTED
-#define PATTERN_WIFI_DISCONNECTED 0xAAAAAAAA
-#endif
-#ifndef PATTERN_WIFI_CONNECTED
-#define PATTERN_WIFI_CONNECTED    0xF0F0F0F0
-#endif
-#ifndef PATTERN_WIFI_GOT_IP
-#define PATTERN_WIFI_GOT_IP       0xFFFFFFFE
 #endif
 
 #ifndef WEBSERVER_PORT

@@ -6,6 +6,22 @@
 
 namespace node {
 
+#ifndef PATTERN_PIN
+#define PATTERN_PIN LED_BUILTIN
+#endif
+
+#ifndef PATTERN_WIFI_DISCONNECTED
+#define PATTERN_WIFI_DISCONNECTED 0xAAAAAAAA
+#endif
+#ifndef PATTERN_WIFI_CONNECTED
+#define PATTERN_WIFI_CONNECTED    0xF0F0F0F0
+#endif
+#ifndef PATTERN_WIFI_GOT_IP
+#define PATTERN_WIFI_GOT_IP       0xFFFFFFFE
+#endif
+
+// ----------------------------------------------------------------------------
+
 class Patterns
 {
 public:

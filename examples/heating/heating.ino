@@ -44,7 +44,7 @@ void setup( )
 
   configuration.begin();
 
-  syslog.begin( SYSLOG_HOST );
+  syslog.begin( SYSLOG_IP );
   syslog.set_level( node::Syslog::severity_info );
   node::Logger::use_syslog( syslog );
 
@@ -54,7 +54,7 @@ void setup( )
   wifi.begin();
   ntp.begin();
 
-  mqtt.client_id( MQTT_CLIENT );
+  mqtt.client_id( MQTT_CLIENT_ID );
   mqtt.pub_topic( MQTT_PUB_TOPIC );
   mqtt.begin( MQTT_HOST );
 
