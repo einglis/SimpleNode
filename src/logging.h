@@ -6,6 +6,10 @@
 
 namespace node {
 
+#define DEFAULT_SYSLOG_PORT 514
+
+// ----------------------------------------------------------------------------
+
 class Syslog
 {
 public:
@@ -25,7 +29,6 @@ public:
     , log_level{ severity_debug }
   { }
 
-  #define DEFAULT_SYSLOG_PORT 514
   void begin( const char* syslog_ip_as_string, int syslog_port = DEFAULT_SYSLOG_PORT )
   {
     have_ip = ip.fromString( syslog_ip_as_string );

@@ -7,12 +7,16 @@
 
 namespace node {
 
+#define DEFAULT_WEBSERVER_PORT 80
+
+// ----------------------------------------------------------------------------
+
 class Webserver
   : public node::WifiObserver
 {
 public:
   Webserver()
-    : server( WEBSERVER_PORT/*lazy*/ )
+    : server( DEFAULT_WEBSERVER_PORT/*lazy*/ )
     { }
 
   void begin( )

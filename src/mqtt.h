@@ -19,6 +19,8 @@ static void my_strncpy( char* &dst, const char* src, int &n ) // ugly :(
 
 namespace node {
 
+#define DEFAULT_MQTT_PORT 1883
+
 #ifndef MQTT_KEEPALIVE
 #define MQTT_KEEPALIVE  60  // timeout is set to 1.5x this value
 #endif
@@ -92,7 +94,6 @@ public:
   }
 
 
-  #define DEFAULT_MQTT_PORT 1883
   void begin( const char* mqtt_host, int mqtt_port = DEFAULT_MQTT_PORT )
   {
     log.infof( "client id \"%s\"", client_id_buf );
