@@ -3,6 +3,7 @@
 #include "src/defaults.h" // needs to come first for now
 
 #include "src/configuration.h"
+#include "src/emoncms.h"
 #include "src/inputs.h"
 #include "src/logging.h"
 #include "src/mqtt.h" // costs about 9k loops/sec
