@@ -21,6 +21,7 @@ const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 // ----------------------------------------------------------------------------
 
 node::Configuration< app::Config > configuration( CONFIG_FILENAME );
+node::EmonCms emoncms;
 node::Mqtt mqtt;
 node::Ntp ntp;
 node::Syslog syslog;
@@ -56,8 +57,10 @@ void setup( )
 
   mqtt.client_id( MQTT_CLIENT_ID );
   mqtt.pub_topic( MQTT_PUB_TOPIC );
+  mqtt.sub_topic( MQTT_SUB_TOPIC, "cmd" );
   mqtt.begin( MQTT_HOST );
 
+  emoncms.begin( EMONCMS_HOST, EMONCMS_API_KEY );
 
   webpages::register_default( web, uptime );
   webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );

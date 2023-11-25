@@ -1,24 +1,25 @@
 
 #include <cstddef>
 #include <cstring>
+#include <Arduino.h>
 
 #include "cmd_parse.h"
 
 enum tok_t
 {
   tok_none = 0,
-  tok_channel,
-  tok_sensitivity,
-  tok_boost,
-  tok_boost_time,
-  tok_on,
-  tok_off,
-  tok_now,
-  tok_at,
-  tok_peg_time,
-  tok_day,
-  tok_delete,
-  tok_other,
+  tok_channel = 1,
+  tok_sensitivity = 2,
+  tok_boost = 3,
+  tok_boost_time = 4,
+  tok_on = 5,
+  tok_off = 6,
+  tok_now = 7,
+  tok_at = 8,
+  tok_peg_time = 9,
+  tok_day = 10,
+  tok_delete = 11,
+  tok_other = 12,
 };
 
 struct token_t
@@ -280,7 +281,7 @@ bool parse_cmd( const char *str )
         break;
 
       default:
-        //printf("parsing failed at pos %lu\n", str - str_orig);
+        //Serial.printf("parsing failed at pos %lu\n", str - str_orig);
         return false;
     }
   }

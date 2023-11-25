@@ -28,6 +28,8 @@ void switch_event( node::SwitchInput::Event f, const char* name ) // called in S
 
 // ----------------------------------------------------------------------------
 
+inline uint32_t rr1 (uint32_t x) { return (x << 31) | (x >> 1); } // roll right one
+
 
 // off, stat_off, stat_on
 // a given output has a time component and one or more stat components, one of which is always demanding.
@@ -35,8 +37,9 @@ void switch_event( node::SwitchInput::Event f, const char* name ) // called in S
 class Channel : public PegBoard
 {
 public:
-  Channel( int output_pin )
+  Channel( int output_pin, unsigned int max_sensitivity )
     : pin{ output_pin }
+    , max_sensitivity{ max_sensitivity }
     , boost_secs{ 0 }
     { }
 
@@ -46,22 +49,37 @@ public:
   }
 
   int pin;
+  unsigned int max_sensitivity;
   int boost_secs;
 };
 
 static Channel chans[] =
 {
-  Channel( app::outputs::demand_hw_pin ),
-  Channel( app::outputs::demand_ch1_pin ),
-  Channel( app::outputs::demand_ch2_pin ),
-  Channel( app::outputs::demand_ch3_pin ),
+  Channel( app::outputs::demand_hw_pin,   1 ), // sensitive to only HW stat
+  Channel( app::outputs::demand_ch1_pin, ~0 ), // sensitive to everything
+  Channel( app::outputs::demand_ch2_pin, ~0 ),
+  Channel( app::outputs::demand_ch3_pin, ~0 ),
 };
 static const size_t num_chans = sizeof(chans) / sizeof(chans[0]);
 
 
-Ticker crossings_ticker;
-void crossings_fn( ) // called at 2Hz
+uint32_t stats = 1 << 3; // perma-on
+
+// ----------------------------------------------------------------------------
+
+Ticker channel_tick_ticker;
+const auto channel_tick_interval = 0.5; // ie 2Hz
+void channel_tick_fn( )
 {
+  static bool even = false;
+  even = !even;
+
+  if (even) // ie every 1 Hz.
+    for (auto& c : chans)
+      if (c.boost_secs > 0)
+        c.boost_secs--;
+
+
   if (!ntp.epoch_valid())
     return;
 
@@ -80,13 +98,64 @@ void crossings_fn( ) // called at 2Hz
       c.tick(dd, hh, mm);
   }
   prev_epoch = curr_epoch;
+}
 
+// ------------------------------------
+
+Ticker demand_check_ticker;
+const auto demand_check_interval = 0.1; // 10Hz, but not critical
+void demand_check_fn( )
+{
+  static uint32_t blink = 0x07070707;
+  static uint32_t blink2 = 0x1b1b1b1b;
+  for (auto& c : chans)
+  {
+    unsigned int sense = c.current_sensitivity();
+    if (c.boost_secs > 0)
+      sense = c.max_sensitivity; // be sensitive to everything it can be
+
+    if (sense & stats)
+      digitalWrite( c.pin, HIGH );
+    else if (c.boost_secs > 0)
+      digitalWrite( c.pin, blink2 & 1 );
+    else if (sense)
+      digitalWrite( c.pin, blink & 1 );
+    else
+      digitalWrite( c.pin, LOW );
+  }
+
+  blink = rr1( blink );
+  blink2 = rr1( blink2 );
+};
+
+// ------------------------------------
+
+Ticker external_report_ticker;
+const auto external_report_interval = 5.02; // fraction to try and de-synchronize with others
+void external_report_fn( )
+{
   static bool even = false;
-  if (even) // every 1 Hz.
-    for (auto& c : chans)
-      if (c.boost_secs > 0)
-        c.boost_secs--;
   even = !even;
+
+  uint32_t my_stats = stats;
+  uint32_t my_channels = 0;
+
+  for (auto& c : chans)
+  {
+    my_channels <<= 8;
+
+    unsigned int sense = c.current_sensitivity();
+    if (c.boost_secs > 0)
+      my_channels |= 4;
+
+    if (sense & my_stats)
+      my_channels |= 3; // bits 1 and 2
+    else if (sense)
+      my_channels |= 1;
+  }
+
+  if (even)
+    emoncms.thing( my_stats, my_channels );
 }
 
 // ----------------------------------------------------------------------------
@@ -94,14 +163,6 @@ void crossings_fn( ) // called at 2Hz
 SwitchInput  stat_hw( [](){ return digitalRead( app::inputs::stat_hw_pin  ); } );
 SwitchInput stat_ch1( [](){ return digitalRead( app::inputs::stat_ch1_pin ); } );
 SwitchInput stat_ch2( [](){ return digitalRead( app::inputs::stat_ch2_pin ); } );
-
-uint32_t stats = 1 << 3; // perma-on
-
-
-inline uint32_t rr1 (uint32_t x) { return (x << 31) | (x >> 1); } // roll right one
-
-Ticker t1;
-
 
 void stat_update( node::SwitchInput::Event f, int index )
 {
@@ -130,10 +191,9 @@ void app_setup( )
   pinMode( app::outputs::demand_ch2_pin, OUTPUT );
   pinMode( app::outputs::demand_ch3_pin, OUTPUT );
 
-//  mqtt.on(  "hw", [](auto, auto data) { if (bool x; str_on_off( data, x ))  hw_control( x ); } );
-//  mqtt.on( "ch1", [](auto, auto data) { if (bool x; str_on_off( data, x )) ch1_control( x ); } );
-//  mqtt.on( "ch2", [](auto, auto data) { if (bool x; str_on_off( data, x )) ch2_control( x ); } );
-//  mqtt.on( "ch3", [](auto, auto data) { if (bool x; str_on_off( data, x )) ch3_control( x ); } );
+  mqtt.on(  "", [](auto, auto data) { parse_cmd(data); } );
+
+//  mqtt.on( "emon",     [](auto, auto){ emoncms.thing(); } );
 
 
 
@@ -159,28 +219,15 @@ void app_setup( )
   }
 
 
-  crossings_ticker.attach_scheduled( 0.5, crossings_fn );
-    // note: the logic of crossings_fn will need to change if the interval is adjusted.
+  channel_tick_ticker.attach_scheduled( channel_tick_interval, channel_tick_fn );
+    // Follows NTP and ticks the channels accordingly
 
-  t1.attach_scheduled(0.1, []()
-  {
-    static uint32_t f0 = 0x07070707;
-    for (auto& c : chans)
-    {
-      unsigned int sense = c.current_sensitivity();
-      if (c.boost_secs > 0)
-        sense = ~0;
+  demand_check_ticker.attach_scheduled( demand_check_interval, demand_check_fn );
+    // Compares channel sensitivity to current stat inputs
 
-      if (sense & stats)
-        digitalWrite( c.pin, HIGH );
-      else if (sense)
-        digitalWrite( c.pin, f0 & 1 );
-      else
-        digitalWrite( c.pin, LOW );
-    }
+  external_report_ticker.attach_scheduled( external_report_interval, external_report_fn );
+    // Reports to external entities every now and again
 
-    f0 = rr1( f0 );
-  } );
 }
 
 // ----------------------------------------------------------------------------
@@ -211,7 +258,7 @@ static const char *day_to_str(int day)
 
 void cmd_now( int channel, unsigned int sensitivity, bool on_n_off )
 {
-  printf("c%d s%x %s now\n", channel, sensitivity, (on_n_off) ? "ON" : "OFF" );
+  Serial.printf("c%d s%x %s now\n", channel, sensitivity, (on_n_off) ? "ON" : "OFF" );
   Channel* c = id_to_channel( channel );
   if (!c) return;
 
@@ -225,7 +272,7 @@ void cmd_set( int channel, unsigned int sensitivity, bool on_n_off, int time, in
 {
   if (day < 0) day = 0; // unset => today.
 
-  printf("c%d s%x %s at %02u:%02u %s\n", channel, sensitivity, (on_n_off) ? "ON" : "OFF", time / 60, time % 60, day_to_str(day) );
+  Serial.printf("c%d s%x %s at %02u:%02u %s\n", channel, sensitivity, (on_n_off) ? "ON" : "OFF", time / 60, time % 60, day_to_str(day) );
   Channel* c = id_to_channel( channel );
   if (!c) return;
 
@@ -245,7 +292,7 @@ void cmd_set( int channel, unsigned int sensitivity, bool on_n_off, int time, in
   }
   else if (day == 8)
   {
-    printf("every day\n");
+    Serial.printf("every day\n");
     for (int i = 0; i < 7; i++)
       if (on_n_off)
         c->on_peg( i, time, sensitivity );
@@ -254,7 +301,7 @@ void cmd_set( int channel, unsigned int sensitivity, bool on_n_off, int time, in
   }
   else
   {
-    printf("one day %d\n", day-1);
+    Serial.printf("one day %d\n", day-1);
 
     if (on_n_off)
       c->on_peg( day-1, time, sensitivity );
@@ -269,7 +316,7 @@ void cmd_set( int channel, unsigned int sensitivity, bool on_n_off, int time, in
 
 void cmd_boost( int channel, int time )
 {
-  printf("c%d boost %u\n", channel, time );
+  Serial.printf("c%d boost %u\n", channel, time );
   Channel* c = id_to_channel( channel );
   if (!c) return;
 
@@ -280,9 +327,9 @@ void cmd_boost( int channel, int time )
 void cmd_delete( int channel, int time, int day )
 {
   if (time >= 0)
-    printf("c%d del %02u:%02u\n", channel, time / 60, time % 60 );
+    Serial.printf("c%d del %02u:%02u\n", channel, time / 60, time % 60 );
   else
-    printf("c%d clear %s\n", channel, day_to_str(day) );
+    Serial.printf("c%d clear %s\n", channel, day_to_str(day) );
   Channel* c = id_to_channel( channel );
   if (!c) return;
 

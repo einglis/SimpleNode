@@ -23,7 +23,7 @@
 #define CONFIG_FILENAME "/heating_config.bin"
 
 #define MQTT_CLIENT_ID "heating"
-#define MQTT_SUB_TOPIC "heating/cmd"
+#define MQTT_SUB_TOPIC "heating"
 #define MQTT_PUB_TOPIC "heating"
 
 #define PATTERN_WIFI_GOT_IP   0x00000001
