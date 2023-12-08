@@ -4,7 +4,7 @@
 
 namespace webpages {
 
-void handle_default( AsyncWebServerRequest *request, node::Uptime &uptime )
+void handle_default( AsyncWebServerRequest *request, node::Uptime &uptime, const char* build_version )
 {
   static String reset_reason = ESP.getResetInfo();
     // capture this once; it's not going to change.
@@ -12,7 +12,7 @@ void handle_default( AsyncWebServerRequest *request, node::Uptime &uptime )
   String message;
   message += WIFI_HOSTNAME;
   message += "\n\nBuild: ";
-  message += app::build_version;
+  message += build_version;
   message += "\nLast reset: ";
   message += reset_reason;
   message += "\nUptime: ";
@@ -26,10 +26,10 @@ void handle_default( AsyncWebServerRequest *request, node::Uptime &uptime )
 
 // ----------------------------------------------------------------------------
 
-void register_default( node::Webserver &web, node::Uptime &uptime )
+void register_default( node::Webserver &web, node::Uptime &uptime, const char* build )
 {
   web.add_handler( "/", HTTP_GET,
-    [&uptime]( AsyncWebServerRequest *r ){ handle_default( r, uptime ); }
+    [&uptime, build]( AsyncWebServerRequest *r ){ handle_default( r, uptime, build ); }
   );
 }
 
