@@ -102,11 +102,13 @@ void channel_tick_fn( )
 
 // ------------------------------------
 
+// XXXEDD: todo: disable all outputs while doing upgrades
+
 Ticker demand_check_ticker;
 const auto demand_check_interval = 0.1; // 10Hz, but not critical
 void demand_check_fn( )
 {
-  static uint32_t blink = 0x07070707;
+  static uint32_t blink = 0x00050005;
   static uint32_t blink2 = 0x1b1b1b1b;
   for (auto& c : chans)
   {
