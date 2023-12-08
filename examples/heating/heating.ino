@@ -4,21 +4,19 @@
 // Builtin Led: "2"
 
 #include "app_config.h"
-
 #include "build.gen.h"
+#include "cmd_parse.h"
+
+#include <SimpleNode.h>
+#include <SimpleNodePages/config.h>
+#include <SimpleNodePages/default.h>
+#include <SimpleNodePages/update.h>
+
+// ----------------------------------------------------------------------------
+
 namespace app {
 const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 };
-
-#include <simple_node.h>
-
-#include "pages/config.h"
-#include "pages/default.h"
-#include "pages/update.h"
-
-#include "cmd_parse.h"
-
-// ----------------------------------------------------------------------------
 
 node::Configuration< app::Config > configuration( CONFIG_FILENAME );
 node::EmonCms emoncms;
@@ -62,7 +60,7 @@ void setup( )
 
   emoncms.begin( EMONCMS_HOST, EMONCMS_API_KEY );
 
-  webpages::register_default( web, uptime );
+  webpages::register_default( web, uptime, app::build_version );
   webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );
   webpages::register_update( web );
   web.begin();
