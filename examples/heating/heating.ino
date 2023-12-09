@@ -30,6 +30,8 @@ node::WifiPatterns patterns( app::outputs::status_pin );
 
 node::Logger app_log( "APP" );
 
+#include "pages/status.h"
+
 // ------------------------------------
 
 void setup( )
@@ -60,9 +62,12 @@ void setup( )
 
   emoncms.begin( EMONCMS_HOST, EMONCMS_API_KEY );
 
+  // SimpleNode pages
   webpages::register_default( web, uptime, app::build_version );
   webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );
   webpages::register_update( web );
+    // our own pages
+  webpages::register_status( web );
   web.begin();
 
   app_setup();
