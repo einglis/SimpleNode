@@ -11,23 +11,20 @@ void handle_default( AsyncWebServerRequest *request, node::Webserver& web,
   static String reset_reason = ESP.getResetInfo();
     // capture this once; it's not going to change.
 
-   auto buf = web.get_buffer();
+  auto buf = web.get_buffer();
   if (!buf)
     return web.server_error_response( request );
 
   const char *const bend = buf->data() + buf->size();
   char* bp = buf->data();
 
-  if (bend-bp > 0)
-    bp += snprintf( bp, bend-bp, "%s\n\n", WIFI_HOSTNAME );
-  if (bend-bp > 0)
-    bp += snprintf( bp, bend-bp, "Build: %s\n", build_version );
-  if (bend-bp > 0)
-    bp += snprintf( bp, bend-bp, "Last reset: %s\n", reset_reason.c_str() );
-  if (bend-bp > 0)
-    bp += snprintf( bp, bend-bp, "Uptime: " );
-  if (bend-bp > 0)
-    bp += uptime.friendly( bp, bend-bp );
+  #define ADD if (bend-bp > 0) bp +=
+  ADD snprintf( bp, bend-bp, "%s\n\n", WIFI_HOSTNAME );
+  ADD snprintf( bp, bend-bp, "Build: %s\n", build_version );
+  ADD snprintf( bp, bend-bp, "Last reset: %s\n", reset_reason.c_str() );
+  ADD snprintf( bp, bend-bp, "Uptime: " );
+  ADD uptime.friendly( bp, bend-bp );
+  #undef ADD
 
   //Serial.printf("Rendered default page in %u bytes\n", bp-buf->data()+1);
   request->send( 200, text_type, buf->data() );
