@@ -57,10 +57,10 @@ public:
 
 static Channel chans[] =
 {
-  Channel( "Hot Water", app::outputs::demand_hw_pin,   1 ), // sensitive to only HW stat
+  Channel( "Hot Water",  app::outputs::demand_hw_pin,   1 ), // sensitive to only HW stat
   Channel( "Downstairs", app::outputs::demand_ch1_pin, ~0 ), // sensitive to everything
-  Channel( "Upstairs", app::outputs::demand_ch2_pin, ~0 ),
-  Channel( "Bathrooms", app::outputs::demand_ch3_pin, ~0 ),
+  Channel( "Upstairs",   app::outputs::demand_ch2_pin, ~0 ),
+  Channel( "Bathrooms",  app::outputs::demand_ch3_pin, ~0 ),
 };
 static const size_t num_chans = sizeof(chans) / sizeof(chans[0]);
 
