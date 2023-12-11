@@ -37,8 +37,9 @@ inline uint32_t rr1 (uint32_t x) { return (x << 31) | (x >> 1); } // roll right 
 class Channel : public PegBoard
 {
 public:
-  Channel( int output_pin, unsigned int max_sensitivity )
-    : pin{ output_pin }
+  Channel( const char* name, int output_pin, unsigned int max_sensitivity )
+    : name{ name }
+    , pin{ output_pin }
     , max_sensitivity{ max_sensitivity }
     , boost_secs{ 0 }
     { }
@@ -48,6 +49,7 @@ public:
     boost_secs = length * 60;
   }
 
+  const char* name;
   int pin;
   unsigned int max_sensitivity;
   int boost_secs;
@@ -55,15 +57,62 @@ public:
 
 static Channel chans[] =
 {
-  Channel( app::outputs::demand_hw_pin,   1 ), // sensitive to only HW stat
-  Channel( app::outputs::demand_ch1_pin, ~0 ), // sensitive to everything
-  Channel( app::outputs::demand_ch2_pin, ~0 ),
-  Channel( app::outputs::demand_ch3_pin, ~0 ),
+  Channel( "Hot Water", app::outputs::demand_hw_pin,   1 ), // sensitive to only HW stat
+  Channel( "Downstairs", app::outputs::demand_ch1_pin, ~0 ), // sensitive to everything
+  Channel( "Upstairs", app::outputs::demand_ch2_pin, ~0 ),
+  Channel( "Bathrooms", app::outputs::demand_ch3_pin, ~0 ),
 };
 static const size_t num_chans = sizeof(chans) / sizeof(chans[0]);
 
 
 uint32_t stats = 1 << 3; // perma-on
+
+int lazy_dump( char* buf, int buf_len )
+{
+  char* bp = buf;
+  for (auto& chan: chans)
+  {
+    bp += sprintf( bp, "<h2>%s ", chan.name );
+
+   senses_t sense = chan.current_sensitivity();
+    if (chan.boost_secs)
+      sense = chan.max_sensitivity;
+
+    if (sense & stats)
+      bp += sprintf( bp, " -- ACTIVE" );
+    else if (sense)
+      bp += sprintf( bp, " -- sensitive" );
+    else
+      bp += sprintf( bp, " -- OFF" );
+
+    bp += sprintf( bp, "</h2>\n" );
+
+    bp += sprintf( bp, "<b>Curr stats: </b><samp>" );
+    for (int j = 0; j < 8; j++)
+      *bp++ = (stats & (1 << j)) ? j+'0' : '_';
+
+    bp += sprintf( bp, "</samp>, <b>True sense: </b><samp>" );
+    for (int j = 0; j < 8; j++)
+      *bp++ = (chan.current_sensitivity() & (1 << j)) ? j+'0' : '_';
+
+    bp += sprintf( bp, "</samp>, <b>Boost sense: </b><samp>" );
+    for (int j = 0; j < 8; j++)
+      *bp++ = (chan.max_sensitivity & (1 << j)) ? j+'0' : '_';
+    bp += sprintf( bp, "</samp>" );
+    if (chan.boost_secs > 0)
+      bp += sprintf( bp, " (active for %d seconds)", chan.boost_secs);
+    else
+      bp += sprintf( bp, " (inactive)");
+
+    bp += sprintf( bp, "<br>\n" );
+
+    bp += sprintf( bp, "<b>Schedule:</b>\n<pre>" );
+    bp += chan.pegboard_dump( bp, buf_len );
+    bp += sprintf( bp, "\n</pre>\n" );
+    bp += sprintf( bp, "<hr>\n" );
+  }
+  return bp-buf;
+}
 
 // ----------------------------------------------------------------------------
 

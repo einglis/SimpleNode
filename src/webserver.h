@@ -12,7 +12,7 @@ namespace node {
 namespace web {
   // static Strings to try and avoid heap fragmentation.
   static String text_type{ "text/plain" };
-  static String html_type{ "html/plain" };
+  static String html_type{ "text/html" };
 }
 
 // ----------------------------------------------------------------------------

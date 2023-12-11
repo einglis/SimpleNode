@@ -201,23 +201,68 @@ public:
   }
 
 
-  void dump() const
+  void dump( std::ostream& os = std::cout ) const
   {
     for (auto [time, peg]: pegs)
     {
-      std::cout << " " << time/60 << ":" << time % 60;
+      os << " " << time/60 << ":" << time % 60;
 
-      const char *days[] = {"su", "mo","tu","we","th","fr","sa"};
+      const char *days[] = {"mo","tu","we","th","fr","sa","su"};
       for (int i = 0; i < 7; i++)
       {
-        std::cout << " " << days[i] << ":";
-        str_sense(std::cout, peg.on[i]);
-        std::cout << "/";
-        str_sense(std::cout, peg.off[i]);
+        os << " " << days[i] << ":";
+        str_sense(os, peg.on[i]);
+        os << "/";
+        str_sense(os, peg.off[i]);
       }
-      std::cout  << std::endl;
+      os  << std::endl;
     }
   }
+
+  int pegboard_dump( char* buf, int buf_len )
+  {
+    const int max_sense = 8;
+    const int day_stride = max_sense * 2 + 2 + 2 + 1;
+
+    char sub[ day_stride*7 ];
+    memset( sub, ' ', sizeof(sub)-1 );
+
+    const char* days[] = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+    for (int i = 0; i < 7; i++)
+      memcpy( sub + i*day_stride + (day_stride - strlen(days[i])) / 2, days[i], strlen(days[i]) );
+
+    sub[ sizeof(sub)-1 ] = '\0';
+
+    char* bp = buf;
+    bp += sprintf( bp, "         %s\n", sub );
+
+    for (auto [time, peg]: pegs)
+    {
+      memset( sub, ' ', sizeof(sub)-1 );
+
+      for (int i = 0; i < 7; i++)
+      {
+        char* sp = sub + i*day_stride;
+
+        *sp++ = '+';
+        for (int j = 0; j < max_sense; j++)
+          *sp++ = (peg.on[i] & (1 << j)) ? j+'0' : '_';
+        sp++;
+
+        *sp++ = '-';
+        for (int j = 0; j < max_sense; j++)
+          *sp++ = (peg.off[i] & (1 << j)) ? j+'0' : '_';
+      }
+
+      sub[ sizeof(sub)-1 ] = '\0';
+
+      bp += sprintf( bp, " %02d:%02d : %s\n", time/60, time%60, sub );
+    }
+
+    (void)buf_len;
+    return bp-buf;
+  }
+
 
 private:
   struct peg

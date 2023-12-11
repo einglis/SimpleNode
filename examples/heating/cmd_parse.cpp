@@ -123,8 +123,8 @@ static bool parse_day( const char *sp, size_t len, int &day )
   if (len < 2) return false;
     // minium of two-character match, eg for TU and TH
 
-  const char *days[] = { "today", "sunday", "monday", "tuesday",
-      "wednesday", "thursday", "friday", "saturday", "all" };
+  const char *days[] = { "today", "monday", "tuesday", "wednesday",
+      "thursday", "friday", "saturday", "sunday", "all" };
 
   for (day = 0; day < (int)(sizeof(days)/sizeof(days[0])); day++)
     if (!strncasecmp(sp, days[day], len))
