@@ -72,11 +72,36 @@ public:
       pegs.insert( {time, p} );
     }
   }
-  void remove_peg( int time )
+
+  void remove_peg( int day, int time )
   {
+    if (day < 0 || day >= 7) return;
+
     auto it = pegs.find(time);
     if (it != pegs.end())
-      pegs.erase(it);
+    {
+      it->second.on[day] = 0;
+      it->second.off[day] = 0;
+
+      if (it->second.empty())
+        pegs.erase( it );
+    }
+  }
+
+  void remove_pegs( int day )
+  {
+    if (day < 0 || day >= 7) return;
+
+    for (auto it = pegs.begin(); it != pegs.end(); )
+    {
+      it->second.on[day] = 0;
+      it->second.off[day] = 0;
+
+      if (it->second.empty())
+        it = pegs.erase( it );
+      else
+        ++it;
+    }
   }
 
   void apply_peg( int day, int time )
@@ -191,7 +216,8 @@ public:
         p.off[i] = *bp++;
       }
 
-      pegs.insert( {time, p} );
+      if (!p.empty())
+        pegs.insert( {time, p} );
     }
     if (file.available() > 0)
       Serial.println("bytes remain in the file");
@@ -269,6 +295,14 @@ private:
   {
     senses_t on[7];
     senses_t off[7];
+
+    bool empty( )
+    {
+      int x = 0;
+        for (int i = 0; i < 7; i++)
+          x += on[i] + off[i];
+        return x == 0;
+      }
   };
 
   int curr_time;

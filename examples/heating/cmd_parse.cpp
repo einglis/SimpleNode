@@ -225,7 +225,7 @@ bool parse_cmd( const char *str )
         break;
 
       case have_del:
-        if (t.type == tok_peg_time) { next_state = done; time = t.peg_time; }
+        if (t.type == tok_peg_time) { next_state = have_time; time = t.peg_time; }
         if (t.type == tok_day)      { next_state = done; day  = t.day;      }
         break;
 

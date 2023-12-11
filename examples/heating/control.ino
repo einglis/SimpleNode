@@ -377,14 +377,47 @@ void cmd_boost( int channel, int time )
 
 void cmd_delete( int channel, int time, int day )
 {
+  if (day < 0) day = 8; // unset => all.
+
   if (time >= 0)
-    Serial.printf("c%d del %02u:%02u\n", channel, time / 60, time % 60 );
+    Serial.printf("c%d del %02u:%02u, %s\n", channel, time / 60, time % 60, day_to_str(day) );
   else
     Serial.printf("c%d clear %s\n", channel, day_to_str(day) );
   Channel* c = id_to_channel( channel );
   if (!c) return;
 
-  c->remove_peg( time );
+  if (day == 0)
+  {
+    if (ntp.epoch_valid())
+    {
+      const long int curr_epoch = ntp.epoch_time();
+      const int dd = (ntp.epoch_day( curr_epoch ) + 6) % 7; // ntp has 0 == sun, but we want 0 == mon.
+      printf("today; %d\n", dd);
+
+      if (time >= 0)
+        c->remove_peg( dd, time );
+      else
+        c->remove_pegs( dd );
+    }
+  }
+  else if (day == 8)
+  {
+    Serial.printf("every day\n");
+    for (int i = 0; i < 7; i++)
+      if (time >= 0)
+        c->remove_peg( i, time );
+      else
+        c->remove_pegs( i );
+  }
+  else
+  {
+    Serial.printf("one day %d\n", day-1);
+
+    if (time >= 0)
+      c->remove_peg( day-1, time );
+    else
+      c->remove_pegs( day-1 );
+  }
 
   char file[] = "/fishX.bin";
   file[4] = channel + '0';
