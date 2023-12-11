@@ -332,7 +332,7 @@ void cmd_set( int channel, unsigned int sensitivity, bool on_n_off, int time, in
     if (ntp.epoch_valid())
     {
       const long int curr_epoch = ntp.epoch_time();
-      const int dd = ntp.epoch_day( curr_epoch );
+      const int dd = (ntp.epoch_day( curr_epoch ) + 6) % 7; // ntp has 0 == sun, but we want 0 == mon.
       printf("today; %d\n", dd);
 
       if (on_n_off)
