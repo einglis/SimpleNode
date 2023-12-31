@@ -25,7 +25,7 @@ public:
         log.infof( "time: %s", client.getFormattedTime() );
       } );
 
-    wifi_observer_register( *this );
+    WiFi::register_observer( *this );
   }
 
   bool epoch_valid( ) { return client.isTimeSet(); }
@@ -75,9 +75,5 @@ private:
 
   static Logger log;
 };
-
-// ------------------------------------
-
-Logger Ntp::log( "NTP" );
 
 } //node

@@ -119,7 +119,7 @@ public:
         s->sub = std::move(sub);
     }
 
-    wifi_observer_register( *this );
+    WiFi::register_observer( *this );
   }
 
   virtual void wifi_down( ) // WifiObserver
@@ -273,7 +273,5 @@ private:
 
   static Logger log;
 };
-
-Logger Mqtt::log( "MQTT" );
 
 } // node

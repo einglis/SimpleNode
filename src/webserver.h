@@ -28,7 +28,7 @@ public:
   void begin( )
   {
     server.onNotFound( not_found_response );
-    wifi_observer_register( *this );
+    WiFi::register_observer( *this );
   }
 
   void add_handler( const char* uri, WebRequestMethod method, ArRequestHandlerFunction fn, ArUploadHandlerFunction upload = nullptr )
@@ -77,7 +77,5 @@ private:
 
   static Logger log;
 };
-
-Logger Webserver::log( "WEB" );
 
 } // node

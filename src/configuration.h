@@ -18,7 +18,8 @@ union ConfigHeader
 
 // ------------------------------------
 
-Logger config_log( "CONFIG" );
+extern Logger config_log;
+  // not a static class member, because the templating complicates the static definition
 
 template< typename AppConfig >
 class Configuration

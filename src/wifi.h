@@ -7,8 +7,6 @@
 
 namespace node {
 
-Logger wifi_log( "WIFI" );
-
 // ------------------------------------
 
 struct WifiObserver
@@ -17,12 +15,8 @@ struct WifiObserver
   virtual void wifi_up() { };
   virtual void wifi_down() { };
 
-  void wifi_observer_register( WifiObserver& );
   virtual ~WifiObserver() = 0;
 };
-
-WifiObserver::~WifiObserver( ) { }
-  // pure virtual destructor implementation
 
 // ------------------------------------
 
@@ -31,7 +25,6 @@ class WiFi
 public:
   WiFi( )
     : is_connected{ false }
-    , log{ wifi_log }
     { }
 
   void begin()
@@ -99,19 +92,13 @@ private:
     } );
   }
 
-  Logger& log;
   uint8_t mac[8];
 
-  static std::vector< std::reference_wrapper< WifiObserver > > observers; // declaration...
-  friend void WifiObserver::wifi_observer_register( WifiObserver& );
+  static Logger log;
+
+  static std::vector< std::reference_wrapper< WifiObserver > > observers;
+public:
+  static void register_observer( WifiObserver& o) { observers.push_back( o ); }
 };
-
-// ------------------------------------
-
-std::vector< std::reference_wrapper< WifiObserver > > WiFi::observers; // ...definition
-void WifiObserver::wifi_observer_register( WifiObserver& o )
-{
-  WiFi::observers.push_back( o );
-}
 
 } // node

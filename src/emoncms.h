@@ -113,6 +113,4 @@ private:
   static Logger log;
 };
 
-Logger EmonCms::log( "EMON" );
-
 } // node

@@ -62,6 +62,4 @@ private:
   static Logger log;
 };
 
-Logger Uptime::log( "UPTIME" );
-
 } // node

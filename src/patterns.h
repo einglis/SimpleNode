@@ -79,7 +79,7 @@ struct WifiPatterns
   void begin( )
   {
     Patterns::begin();
-    wifi_observer_register( *this );
+    WiFi::register_observer( *this );
   }
 
 private:

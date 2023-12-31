@@ -155,6 +155,4 @@ private:
   static Syslog* syslog;
 };
 
-Syslog* Logger::syslog; // static member definition
-
 } // node
