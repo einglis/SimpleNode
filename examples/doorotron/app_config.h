@@ -4,9 +4,9 @@
 
 #define WIFI_HOSTNAME "doorotron"
 
-#define MQTT_CLIENT "doorotron"
-#define MQTT_SUB_TOPIC "garage/cmd"
-#define MQTT_PUB_TOPIC "garage/status"
+#define MQTT_CLIENT_ID "doorotron"
+#define MQTT_SUB_TOPIC "garage"
+#define MQTT_PUB_TOPIC "garage"
 
 // ----------------------------------------------------------------------------
 

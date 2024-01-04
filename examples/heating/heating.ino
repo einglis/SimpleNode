@@ -43,6 +43,8 @@ void setup( )
   Serial.println( app::build_version );
   Serial.println( ESP.getResetReason() );
 
+  Serial.setDebugOutput(true);
+
   configuration.begin();
 
   syslog.begin( SYSLOG_IP );

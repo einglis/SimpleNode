@@ -1,28 +1,30 @@
 
-#include "app_config.h"
+// Board: "Generic ESP8266 Module"
+// Flash Size: "4MB (FS:2MB OTA:~1019KB)"
+// Builtin Led: "2"
 
+#include "app_config.h"
 #include "build.gen.h"
+
+#include <SimpleNode.h>
+#include "SimpleNodePages/default.h"
+#include "SimpleNodePages/update.h"
+
+// ----------------------------------------------------------------------------
+
 namespace app {
 const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 };
 
-#include <simple_node.h>
-
-#include "pages/default.h"
-#include "pages/update.h"
-
-// ----------------------------------------------------------------------------
-
-node::Mqtt mqtt( MQTT_HOST, MQTT_CLIENT );
-node::WifiPatterns patterns( app::outputs::status_pin );
+node::Mqtt mqtt;
 node::Uptime uptime;
 node::Webserver web;
 node::WiFi wifi;
+node::WifiPatterns patterns( app::outputs::status_pin );
 
 // ------------------------------------
 
 node::Logger app_log( "APP" );
-
 #include "doors.h"
 
 Door a( "doorA", app::inputs::switch_a_pin, app::outputs::button_a_pin );
@@ -41,9 +43,13 @@ void setup( )
   patterns.begin();
 
   wifi.begin();
-  mqtt.begin( );
 
-  webpages::register_default( web, uptime );
+  mqtt.client_id( MQTT_CLIENT_ID );
+  mqtt.pub_topic( MQTT_PUB_TOPIC );
+  mqtt.sub_topic( MQTT_SUB_TOPIC, "cmd" );
+  mqtt.begin( MQTT_HOST );
+
+  webpages::register_default( web, uptime, app::build_version );
   webpages::register_update( web );
   web.begin();
 

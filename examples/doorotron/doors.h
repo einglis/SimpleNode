@@ -57,7 +57,7 @@ private:
             door_open_led( index, true );
             sprintf( buf, "%s open", name );
             app_log.debugf( buf );
-            mqtt.publish( buf );
+            mqtt.publish( "status", buf );
             break;
 
         case node::SwitchInput::FlipClose:
@@ -65,7 +65,7 @@ private:
             door_open_led( index, false );
             sprintf( buf, "%s closed", name );
             app_log.debugf( buf );
-            mqtt.publish( buf );
+            mqtt.publish( "status", buf );
             break;
 
         default:

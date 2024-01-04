@@ -188,25 +188,65 @@ void external_report_fn( )
   static bool even = false;
   even = !even;
 
-  uint32_t my_stats = stats;
-  uint32_t my_channels = 0;
-
-  for (auto& c : chans)
-  {
-    my_channels <<= 8;
-
-    unsigned int sense = c.current_sensitivity();
-    if (c.boost_secs > 0)
-      my_channels |= 4;
-
-    if (sense & my_stats)
-      my_channels |= 3; // bits 1 and 2
-    else if (sense)
-      my_channels |= 1;
-  }
-
   if (even)
+  {
+    uint32_t my_stats = stats;
+    uint32_t my_channels = 0;
+
+    for (auto& c : chans)
+    {
+      my_channels <<= 8;
+
+      unsigned int sense = c.current_sensitivity();
+      if (c.boost_secs > 0)
+        my_channels |= 4;
+
+      if (sense & my_stats)
+        my_channels |= 3; // bits 1 and 2
+      else if (sense)
+        my_channels |= 1;
+    }
+
     emoncms.thing( my_stats, my_channels );
+  }
+  else
+  {
+      char buf[32]; // need 20
+      char* bp = &buf[0];
+
+      *bp++ = 'S';
+      *bp++ = (stats & 1) ? 'W' : '-';
+      *bp++ = (stats & 2) ? '1' : '-';
+      *bp++ = (stats & 4) ? '2' : '-';
+      *bp++ = ' ';
+
+      *bp++ = 'C';
+      for (auto& c : chans)
+      {
+        const uint32_t sense = c.current_sensitivity();
+        const uint32_t boost_sense = (c.boost_secs > 0) ? c.max_sensitivity : 0;
+
+        if (stats & sense) *bp++ = 'O'; // on
+        else if (stats & boost_sense) *bp++ = 'B'; // boosted
+        else if (boost_sense) *bp++ = 'b'; // could be boosted
+        else if (sense) *bp++ = 'o'; // could be on
+        else *bp++ = '-'; // off
+      }
+      *bp++ = ' ';
+
+      *bp++ = 'V';
+      *bp++ = '-'; // close, opening, open, closing
+      *bp++ = '-';
+      *bp++ = '-';
+      *bp++ = '-';
+      *bp++ = ' ';
+
+      *bp++ = 'D';
+      *bp++ = '-'; // off, waiting, on, overrun
+      *bp++ = '\0';
+
+      mqtt.publish( "status", buf );
+  }
 }
 
 // ----------------------------------------------------------------------------
