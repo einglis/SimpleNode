@@ -1,19 +1,19 @@
 
 #include "app_config.h"
-
 #include "build.gen.h"
+
+#include <SimpleNode.h>
+using node::ButtonInput;
+
+#include "SimpleNodePages/config.h"
+#include "SimpleNodePages/default.h"
+#include "SimpleNodePages/update.h"
+
+// ----------------------------------------------------------------------------
+
 namespace app {
 const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 };
-
-#include <simple_node.h>
-using node::ButtonInput;
-
-#include "pages/config.h"
-#include "pages/default.h"
-#include "pages/update.h"
-
-// ----------------------------------------------------------------------------
 
 node::Configuration< app::Config > configuration( CONFIG_FILENAME );
 node::Mqtt mqtt;
@@ -49,7 +49,7 @@ void button_event( ButtonInput::Event e, int count ) // called in SYS context
 {
   // do this immediately for a timely response...
   if (e == ButtonInput::Press && count == 1)
-    toggle_power_state(); 
+    toggle_power_state();
 
   // ...reporting can be done in the next loop
   schedule_function( [=]() {
@@ -103,7 +103,7 @@ void setup( )
   mqtt.sub_topic( MQTT_SUB_TOPIC, mqtt_salt, "cmd" );
   mqtt.begin( MQTT_HOST );
 
-  webpages::register_default( web, uptime );
+  webpages::register_default( web, uptime, app::build_version );
   webpages::register_config( web, (const uint8_t*)&configuration(), sizeof(app::Config) );
   webpages::register_update( web );
   web.begin();
