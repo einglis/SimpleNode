@@ -1,15 +1,15 @@
 #pragma once
 
-#include "src/defaults.h" // needs to come first for now
+#include "include/defaults.h" // needs to come first for now
 
-#include "src/configuration.h"
-#include "src/emoncms.h"
-#include "src/inputs.h"
-#include "src/logging.h"
-#include "src/mqtt.h" // costs about 9k loops/sec
-#include "src/ntp.h"
-#include "src/patterns.h"
-#include "src/pixels.h" // costs about 3k loops/sec
-#include "src/uptime.h"
-#include "src/webserver.h"
-#include "src/wifi.h"
+#include "include/configuration.h"
+#include "include/emoncms.h"
+#include "include/inputs.h"
+#include "include/logging.h"
+#include "include/mqtt.h" // costs about 9k loops/sec
+#include "include/ntp.h"
+#include "include/patterns.h"
+#include "include/pixels.h" // costs about 3k loops/sec
+#include "include/uptime.h"
+#include "include/webserver.h"
+#include "include/wifi.h"

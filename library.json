@@ -1,0 +1,22 @@
+{
+  "name": "SimpleNode",
+  "description": "A framework for my homebrew IoT projects",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/einglis/SimpleNode"
+  },
+  "authors":
+  {
+    "name": "Edd Inglis"
+  },
+  "dependencies":
+  {
+    "adafruit/Adafruit NeoPixel": "*",
+    "adafruit/Adafruit MQTT Library": "https://github.com/einglis/Adafruit_MQTT_Library",
+    "arduino-libraries/NTPClient": "*",
+    "me-no-dev/ESP Async WebServer": "*"
+  },
+  "frameworks": "arduino",
+  "platforms": "esp8266"
+}
