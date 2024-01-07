@@ -28,12 +28,19 @@ node::Logger app_log( "APP" );
 // ----------------------------------------------------------------------------
 
 bool power_state = false;
+
+void report_status()
+{
+  mqtt.publish( "status", (power_state) ? "on" : "off" );
+}
+
 void set_power_state( bool new_state )
 {
   power_state = new_state;
   digitalWrite( app::outputs::relay_pin, power_state );
 
   patterns.set_idle( power_state ? ~0 : 0 ); // make the LED match the relay
+  report_status();
 }
 
 void toggle_power_state()
@@ -119,6 +126,7 @@ void setup( )
   mqtt.on( "on",     [](auto, auto){ set_power_state( true ); } );
   mqtt.on( "off",    [](auto, auto){ set_power_state( false ); } );
   mqtt.on( "toggle", [](auto, auto){ toggle_power_state(); } );
+  mqtt.on( "status", [](auto, auto){ report_status(); } );
 }
 
 void loop( )
