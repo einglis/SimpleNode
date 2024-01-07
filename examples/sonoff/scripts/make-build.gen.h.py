@@ -1,7 +1,6 @@
 
 from datetime import datetime
 import os
-
 Import("env")
 
 build_date = datetime.now().strftime('%a %-d %b %Y, %H:%M:%S')  # eg 'Fri 5 Jan 2024, 11:36:19'
