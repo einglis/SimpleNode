@@ -2,3 +2,4 @@ private_config.h
 .vscode/
 .pio/
 build.gen.h
+.gitignore
