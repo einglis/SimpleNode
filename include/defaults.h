@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../private_config.h" // not in repository
+#include "private_config.h" // not in repository
 
 #ifndef WIFI_SSID
 #define WIFI_SSID PRIVATE_WIFI_SSID
