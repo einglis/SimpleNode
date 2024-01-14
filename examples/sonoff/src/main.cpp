@@ -1,4 +1,6 @@
 
+#include <Arduino.h>
+
 #include "app_config.h"
 #include "build.gen.h"
 

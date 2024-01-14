@@ -1,7 +1,5 @@
 
-// Board: "Generic ESP8266 Module"
-// Flash Size: "4MB (FS:2MB OTA:~1019KB)"
-// Builtin Led: "2"
+#include <Arduino.h>
 
 #include "app_config.h"
 #include "build.gen.h"
