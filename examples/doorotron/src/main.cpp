@@ -56,6 +56,8 @@ void setup( )
 
   a.begin();
   b.begin();
+
+  mqtt.on( "status", [](auto, auto){ a.status(); b.status(); } );
 }
 
 void loop( )

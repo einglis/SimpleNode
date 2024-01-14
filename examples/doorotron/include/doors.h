@@ -44,28 +44,33 @@ public:
     mqtt.on( name, [this](auto, auto){ bips_requested++; } );
   }
 
+  void status( bool debug = false )
+  {
+    char buf[32];
+    sprintf( buf, "%s %s", name, (is_open) ? "open" : "closed" );
+
+    if (debug)
+      app_log.debugf( buf );
+
+    mqtt.publish( "status", buf );
+  }
+
 private:
   void switch_event( node::SwitchInput::Event f ) // called in SYS context
   {
     schedule_function( [this, f]() {
-      char buf[32];
-
       switch (f)
       {
         case node::SwitchInput::FlipOpen:
             is_open = true;
             door_open_led( index, true );
-            sprintf( buf, "%s open", name );
-            app_log.debugf( buf );
-            mqtt.publish( "status", buf );
+            status( true /*app_log*/ );
             break;
 
         case node::SwitchInput::FlipClose:
             is_open = false;
             door_open_led( index, false );
-            sprintf( buf, "%s closed", name );
-            app_log.debugf( buf );
-            mqtt.publish( "status", buf );
+            status( true /*app_log*/ );
             break;
 
         default:
