@@ -13,10 +13,11 @@
   "dependencies":
   {
     "adafruit/Adafruit NeoPixel": "*",
-    "adafruit/Adafruit MQTT Library": "https://github.com/einglis/Adafruit_MQTT_Library",
+    "adafruit/Adafruit MQTT Library": "*",
     "arduino-libraries/NTPClient": "*",
-    "me-no-dev/ESP Async WebServer": "https://github.com/me-no-dev/ESPAsyncWebServer.git"
+    "me-no-dev/ESP Async WebServer": "https://github.com/me-no-dev/ESPAsyncWebServer.git#f71e3d4"
   },
+
   "frameworks": "arduino",
   "platforms": "esp8266"
 }
