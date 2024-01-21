@@ -1,8 +1,11 @@
 
-#include "pegboard.h"
+#include "app_config.h"
+#include "common.h"
 
+#include <SimpleNode.h>
 using node::SwitchInput;
-  // still need fully qualified types in function signatures due to Arduino code mangling.
+
+#include "pegboard.h"
 
 // ----------------------------------------------------------------------------
 
@@ -298,6 +301,7 @@ void app_setup( )
       Serial.println("LittleFS mount failed again");
   }
 
+  void listDir(const char * dirname);
   listDir("/");
 
 

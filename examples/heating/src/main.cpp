@@ -1,10 +1,6 @@
 
-// Board: "Generic ESP8266 Module"
-// Flash Size: "4MB (FS:2MB OTA:~1019KB)"
-// Builtin Led: "2"
-
 #include "app_config.h"
-#include "build.gen.h"
+#include "common.h"
 #include "cmd_parse.h"
 
 #include <SimpleNode.h>
@@ -14,6 +10,7 @@
 
 // ----------------------------------------------------------------------------
 
+#include "build.gen.h"
 namespace app {
 const char *build_version = XXX_BUILD_REPO_VERSION " (" XXX_BUILD_DATE ")";
 };
