@@ -1,7 +1,6 @@
 
 #pragma once
 
-#include <iostream>
 #include <map>
 
 extern node::Logger app_log;
@@ -9,13 +8,20 @@ extern node::Logger app_log;
 
 typedef uint8_t senses_t;
 
-std::ostream &str_sense( std::ostream &os, senses_t s )
+size_t str_sense( senses_t s, char buf[], size_t buf_len )
 {
-  os << ((s & 1) ? 'w' : '-');
-  s >>= 1;
-  for (size_t i = 1; i < sizeof(senses_t) * 8; ++i, s >>= 1)
-    os << (char)((s & 1) ? i+'0' : '-');
-  return os;
+  if (!buf || buf_len < 1)
+    return 0;
+
+  const size_t i_max = min( sizeof(senses_t) * 8, buf_len - 1 );
+  for (size_t i = 0; i < i_max; i++)
+  {
+    const char ch = (i == 0) ? 'w' : '0'+i;
+    buf[i] = ((s >> i) & 1) ? ch : '-';
+  }
+
+  buf[i_max] = '\0';
+  return i_max;
 }
 
 // ----------------------------------------------------------------------------
@@ -145,18 +151,6 @@ public:
     return curr_pegs;
   }
 
-  void report() const
-  {
-    printf("at %02u:%02u,  ", curr_time/60, curr_time%60);
-
-    std::cout << "pegs: ";
-    str_sense(std::cout, curr_pegs);
-    std::cout << "  -->  ";
-    str_sense(std::cout, current_sensitivity());
-
-    std::cout << std::endl;
-  }
-
   void save(const char *filename)
   {
     dump();
@@ -227,21 +221,23 @@ public:
   }
 
 
-  void dump( std::ostream& os = std::cout ) const
+  void dump( ) const
   {
     for (auto [time, peg]: pegs)
     {
-      os << " " << time/60 << ":" << time % 60;
+      Serial.printf( " %02u:%02u", time/60, time%60 );
 
       const char *days[] = {"mo","tu","we","th","fr","sa","su"};
       for (int i = 0; i < 7; i++)
       {
-        os << " " << days[i] << ":";
-        str_sense(os, peg.on[i]);
-        os << "/";
-        str_sense(os, peg.off[i]);
+        char on_buf[16];
+        (void)str_sense( peg.on[i], on_buf, sizeof(on_buf) );
+        char off_buf[16];
+        (void)str_sense( peg.off[i], off_buf, sizeof(off_buf) );
+
+        Serial.printf( " %s:%s/%s", days[i], on_buf, off_buf );
       }
-      os  << std::endl;
+      Serial.println("");
     }
   }
 
