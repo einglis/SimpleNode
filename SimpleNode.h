@@ -10,6 +10,7 @@
 #include "include/ntp.h"
 #include "include/patterns.h"
 #include "include/pixels.h" // costs about 3k loops/sec
+#include "include/schedule.h"
 #include "include/uptime.h"
 #include "include/webserver.h"
 #include "include/wifi.h"

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <ESP8266WiFi.h>
-#include <Schedule.h>
 
 #include "logging.h"
+#include "schedule.h"
 
 namespace node {
 
@@ -64,7 +64,7 @@ private:
     is_connected = false;
     my_ip.clear();
 
-    schedule_function( []() { // decouple schedulling, just in case.
+    defer_to_loop( []() { // decouple schedulling, just in case.
       for ( WifiObserver& o : observers )
         o.wifi_down();
     } );
@@ -75,7 +75,7 @@ private:
     log.info( F("connected") );
     is_connected = true;
 
-    schedule_function( []() { // decouple schedulling, just in case.
+    defer_to_loop( []() { // decouple schedulling, just in case.
       for ( WifiObserver& o : observers )
         o.wifi_up();
     } );
@@ -86,7 +86,7 @@ private:
     log.infof( "got IP: %s", e.ip.toString().c_str() );
     my_ip = e.ip;
 
-    schedule_function( [e]() { // decouple schedulling, just in case.
+    defer_to_loop( [e]() { // decouple schedulling, just in case.
       for ( WifiObserver& o : observers )
         o.wifi_got_ip( e.ip );
     } );

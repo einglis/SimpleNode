@@ -212,9 +212,11 @@ private:
     sprintf( buf, "online %s", my_wifi.localIP().toString().c_str() );
     (void)client->publish( make_pub_topic("connection"), buf, MQTT_QOS_1/*at least once*/, 1/*retain*/ );
 
-    ping_ticker.attach_scheduled( MQTT_KEEPALIVE, [this]() {
-      log.debug( F("ping") );
-      client->ping(); // can block for up to 500 ms.
+    ping_ticker.attach( MQTT_KEEPALIVE, [this]() {
+      defer_to_loop( [=]() {
+        log.debug( F("ping") );
+        client->ping(); // can block for up to 500 ms.
+      } );
     } );
   }
   void mqtt_disconnected( )
@@ -259,14 +261,20 @@ private:
       if (client->connect() == 0) /* 0 == connected*/
       {
         mqtt_connected();
-        poll_ticker.attach_ms_scheduled( 100, [this](){ poll( true ); } );
+        poll_ticker.attach_ms( 100, [this](){
+          defer_to_loop( [=]() {
+            poll( true );
+          } );
+        } );
       }
       else
       {
         // the first connection attempt invariably fails as the library
         // starts with a subcription sequence of zero, which is invalid.
         log.info( F("connect failed; will try again") );
-        poll_ticker.once_scheduled( 5, [this](){ poll( false ); } );
+        poll_ticker.once( 5, [this]() {
+          defer_to_loop( [=]() { poll( false ); } );
+        } );
       }
     }
   }

@@ -29,7 +29,7 @@ void new_power( bool pwr )
 
   pwr_target_on = pwr;
 
-  power_fade_ticker.attach_ms_scheduled( 5, []() {
+  power_fade_ticker.attach_ms( 5, []() {
     if (pwr_target_on)
     {
       if (power_fade_count == 0)
@@ -77,7 +77,7 @@ void new_pattern( int next_pattern )
     return;
   }
 
-  transition_ticker.attach_ms_scheduled( 10, [next_pattern]() {
+  transition_ticker.attach_ms( 10, [next_pattern]() { defer_to_loop( [=]() {
     if (transition_count)
       transition_count--;
 
@@ -99,7 +99,7 @@ void new_pattern( int next_pattern )
         transition_ticker.detach();
       }
     }
-  } );
+  } ); } );
 }
 
 void cycle_pattern( )

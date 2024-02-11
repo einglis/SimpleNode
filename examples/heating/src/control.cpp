@@ -314,13 +314,13 @@ void app_setup( )
   }
 
 
-  channel_tick_ticker.attach_scheduled( channel_tick_interval, channel_tick_fn );
+  channel_tick_ticker.attach( channel_tick_interval, [](){ defer_to_loop( channel_tick_fn ); } );
     // Follows NTP and ticks the channels accordingly
 
-  demand_check_ticker.attach_scheduled( demand_check_interval, demand_check_fn );
+  demand_check_ticker.attach( demand_check_interval, [](){ defer_to_loop( demand_check_fn ); } );
     // Compares channel sensitivity to current stat inputs
 
-  external_report_ticker.attach_scheduled( external_report_interval, external_report_fn );
+  external_report_ticker.attach( external_report_interval, [](){ defer_to_loop( external_report_fn ); } );
     // Reports to external entities every now and again
 
 }

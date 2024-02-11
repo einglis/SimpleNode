@@ -61,7 +61,7 @@ void button_event( ButtonInput::Event e, int count ) // called in SYS context
     toggle_power_state();
 
   // ...reporting can be done in the next loop
-  schedule_function( [=]() {
+  defer_to_loop( [=]() {
 
     const char* event_name = nullptr;
     switch (e)

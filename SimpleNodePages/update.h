@@ -3,6 +3,8 @@
 #include <ESPAsyncWebServer.h>
 #include <Updater.h>
 
+#include "schedule.h"
+
 namespace webpages {
 
 node::Logger update_log( "UPDATE" );
@@ -87,7 +89,7 @@ void handle_update_progress( AsyncWebServerRequest* request, String filename, si
 void handle_reboot( AsyncWebServerRequest* request )
 {
   request->send(200, "text/plain", "Rebooting..." );
-  schedule_function( [](){ delay(500); ESP.restart(); } );
+  defer_to_loop( [](){ delay(500); ESP.restart(); } );
 }
 
 // ----------------------------------------------------------------------------

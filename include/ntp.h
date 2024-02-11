@@ -21,8 +21,10 @@ public:
   void begin( int report_interval = 0 )
   {
     if (report_interval)
-      report_ticker.attach_scheduled( report_interval, [this](){
-        log.infof( "time: %s", client.getFormattedTime() );
+      report_ticker.attach( report_interval, [this]() {
+        defer_to_loop( [=]() {
+          log.infof( "time: %s", client.getFormattedTime() );
+        } );
       } );
 
     WiFi::register_observer( *this );
@@ -70,7 +72,11 @@ private:
       phase = min( phase + 1, 5 ); // 1 << 5 == 32 seconds
     }
 
-    refresh_ticker.once_scheduled( wait, [this, phase](){ refresh( phase ); } );
+    refresh_ticker.once( wait, [this, phase]() {
+      defer_to_loop( [=]() {
+        refresh( phase );
+      } );
+    } );
   }
 
   static Logger log;
