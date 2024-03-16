@@ -50,17 +50,17 @@ public:
     // identifiers, a timestamp and so on.  But it works just fine with a
     // severity and a message, and really that's all we want or need.
 
-    char header[] = { '<', (char)(level + '0'), '>', '\0' };
+    const uint8_t header[] = { '<', (uint8_t)(level + '0'), '>' };
         // the syslog protocol allows 0..191, but we know we'll only need 0..9
         // (which implicitly means they'll all be 'kernel' messages).
 
     syslog_wifi.beginPacket( ip, port );
-    syslog_wifi.write(header);
-    syslog_wifi.write(WIFI_HOSTNAME);
-    syslog_wifi.write(' ');
-    syslog_wifi.write(source);
-    syslog_wifi.write(": ");
-    syslog_wifi.write(message);
+    syslog_wifi.write(header, 3);
+    syslog_wifi.write((const uint8_t*)WIFI_HOSTNAME, strlen(WIFI_HOSTNAME));
+    syslog_wifi.write((uint8_t)' ');
+    syslog_wifi.write((const uint8_t*)source, strlen(source));
+    syslog_wifi.write((const uint8_t*)": ", 2);
+    syslog_wifi.write((const uint8_t*)message, strlen(message));
     syslog_wifi.endPacket();
   }
 
@@ -69,14 +69,14 @@ public:
     if (!have_ip) return;
     if (level > log_level) return;
 
-    char header[] = { '<', (char)(level + '0'), '>', '\0' };
+    const uint8_t header[] = { '<', (uint8_t)(level + '0'), '>' };
 
     syslog_wifi.beginPacket( ip, port );
-    syslog_wifi.write(header);
-    syslog_wifi.write(WIFI_HOSTNAME);
-    syslog_wifi.write(' ');
-    syslog_wifi.write(source);
-    syslog_wifi.write(": ");
+    syslog_wifi.write(header, 3);
+    syslog_wifi.write((const uint8_t*)WIFI_HOSTNAME, strlen(WIFI_HOSTNAME));
+    syslog_wifi.write((uint8_t)' ');
+    syslog_wifi.write((const uint8_t*)source, strlen(source));
+    syslog_wifi.write((const uint8_t*)": ", 2);
 
     const char *message_ = (const char *)message;
     uint8_t m = pgm_read_byte(message_++);

@@ -40,7 +40,7 @@ public:
     switch_in.begin( [this](node::SwitchInput::Event f, int){ switch_event( f ); } );
     switch_in.update_debounce_ms( 100 ); // potentially noisy inputs so be conservative
 
-    bip_ticker.attach_ms( 500, [this](){ bip_wrangler(); } );
+    node::ticker_repeat( bip_ticker, 500, [this](){ bip_wrangler(); } );
     mqtt.on( name, [this](auto, auto){ bips_requested++; } );
   }
 

@@ -1,7 +1,8 @@
 #pragma once
 
 #include <Adafruit_NeoPixel.h>
-#include <Ticker.h>
+
+#include "schedule.h"
 
 namespace node {
 
@@ -26,7 +27,7 @@ public:
 
     pixels.begin(); // This initializes the NeoPixel library.
 
-    ticker.attach_ms( 20, [this](){ update(); } );
+    ticker.repeat( 20/*ms*/, [this](){ update(); } );
   }
 
   void brightness( uint8_t b )
@@ -36,7 +37,7 @@ public:
 
 private:
   Adafruit_NeoPixel pixels;
-  Ticker ticker;
+  node::Ticker ticker;
   int work_phase;
   update_fn_t update_fn;
   bool need_update;

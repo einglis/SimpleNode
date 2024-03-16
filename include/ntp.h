@@ -1,6 +1,5 @@
 #pragma once
 
-#include <ESP8266WiFi.h>
 #include <NTPClient.h>
 #include <Ticker.h>
 #include <WiFiUdp.h> // multiple options disambiguated by inclusion of ESP8266WiFi.h, somehow
@@ -18,13 +17,11 @@ public:
     : client( my_wifi, NTP_HOST/*lazy*/ )
   { }
 
-  void begin( int report_interval = 0 )
+  void begin( int report_interval_secs = 0 )
   {
-    if (report_interval)
-      report_ticker.attach( report_interval, [this]() {
-        defer_to_loop( [=]() {
-          log.infof( "time: %s", client.getFormattedTime() );
-        } );
+    if (report_interval_secs)
+      report_ticker.repeat( report_interval_secs * 1000/*ms*/, [this]() {
+        log.infof( "time: %s", client.getFormattedTime() );
       } );
 
     WiFi::register_observer( *this );
@@ -38,7 +35,7 @@ public:
   static int epoch_mins( long int e ) { return (e / 60) % 60; }
   static int epoch_secs( long int e ) { return  e % 60; }
 
-  virtual void wifi_got_ip( IPAddress ) // WifiObserver
+  virtual void wifi_got_ip( ) // WifiObserver
   {
     client.begin();
     refresh();
@@ -53,8 +50,8 @@ public:
 private:
   WiFiUDP my_wifi;
   NTPClient client;
-  Ticker report_ticker;
-  Ticker refresh_ticker;
+  node::Ticker report_ticker;
+  node::Ticker refresh_ticker;
 
   void refresh( int phase = 0 )
   {
@@ -72,11 +69,7 @@ private:
       phase = min( phase + 1, 5 ); // 1 << 5 == 32 seconds
     }
 
-    refresh_ticker.once( wait, [this, phase]() {
-      defer_to_loop( [=]() {
-        refresh( phase );
-      } );
-    } );
+    refresh_ticker.once( wait * 1000/*ms*/, [this, phase]() { refresh( phase ); } );
   }
 
   static Logger log;

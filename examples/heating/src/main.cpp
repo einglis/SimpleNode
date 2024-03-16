@@ -23,7 +23,7 @@ node::Syslog syslog;
 node::Uptime uptime;
 node::Webserver web;
 node::WiFi wifi;
-node::WifiPatterns patterns( app::outputs::status_pin );
+node::WifiPatterns patterns( app::outputs::status_led, false /*not active low*/ );
 
 node::Logger app_log( "APP" );
 
@@ -38,21 +38,23 @@ void setup( )
   Serial.println("");
   Serial.println("");
   Serial.println( app::build_version );
+  #if ESP8266
   Serial.println( ESP.getResetReason() );
+  #endif
 
   Serial.setDebugOutput(true);
 
   configuration.begin();
-
-  syslog.begin( SYSLOG_IP );
-  syslog.set_level( node::Syslog::severity_info );
-  node::Logger::use_syslog( syslog );
 
   uptime.begin();
   patterns.begin();
 
   wifi.begin();
   ntp.begin();
+
+  syslog.begin( SYSLOG_IP ); // after wifi
+  syslog.set_level( node::Syslog::severity_info );
+  //node::Logger::use_syslog( syslog );
 
   mqtt.client_id( MQTT_CLIENT_ID );
   mqtt.pub_topic( MQTT_PUB_TOPIC );

@@ -76,7 +76,7 @@ private:
 
 // ------------------------------------
 
-void handle_raw_bytes( AsyncWebServerRequest* request, const uint8 *data, size_t data_len )
+void handle_raw_bytes( AsyncWebServerRequest* request, const uint8_t *data, size_t data_len )
 {
   auto hexeroo = std::make_shared<Hexorator<16>>( data, data_len );
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/plain",
@@ -87,7 +87,7 @@ void handle_raw_bytes( AsyncWebServerRequest* request, const uint8 *data, size_t
 
 // ----------------------------------------------------------------------------
 
-void register_config( node::Webserver &web, const uint8 *data, size_t data_len )
+void register_config( node::Webserver &web, const uint8_t *data, size_t data_len )
 {
   web.add_handler( "/config", HTTP_GET,
     [=]( AsyncWebServerRequest *r ){ handle_raw_bytes( r, data, data_len ); }

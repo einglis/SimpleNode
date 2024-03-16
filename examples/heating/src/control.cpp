@@ -11,21 +11,19 @@ using node::SwitchInput;
 
 void switch_event( node::SwitchInput::Event f, const char* name ) // called in SYS context
 {
-  schedule_function( [=]() {
     switch (f)
     {
       case SwitchInput::FlipOpen:
-          app_log.infof( "%s OFF", name );
+          //app_log.infof( "%s OFF", name );
           break;
 
       case SwitchInput::FlipClose:
-          app_log.infof( "%s DEMAND", name );
+          //app_log.infof( "%s DEMAND", name );
           break;
 
       default:
           break;
     }
-  } );
 }
 
 
@@ -119,8 +117,8 @@ int lazy_dump( char* buf, int buf_len )
 
 // ----------------------------------------------------------------------------
 
-Ticker channel_tick_ticker;
-const auto channel_tick_interval = 0.5; // ie 2Hz
+node::Ticker channel_tick_ticker;
+const int channel_tick_interval_ms = 0.5 * 1000; // ie 2Hz
 void channel_tick_fn( )
 {
   static bool even = false;
@@ -156,8 +154,8 @@ void channel_tick_fn( )
 
 // XXXEDD: todo: disable all outputs while doing upgrades
 
-Ticker demand_check_ticker;
-const auto demand_check_interval = 0.1; // 10Hz, but not critical
+node::Ticker demand_check_ticker; // XXXEDD: IsrTicker?
+const int demand_check_interval_ms = 0.1 * 1000; // 10Hz, but not critical
 void demand_check_fn( )
 {
   static uint32_t blink = 0x00050005;
@@ -184,8 +182,8 @@ void demand_check_fn( )
 
 // ------------------------------------
 
-Ticker external_report_ticker;
-const auto external_report_interval = 5.02; // fraction to try and de-synchronize with others
+node::Ticker external_report_ticker;
+const int external_report_interval_ms = 5.02 * 1000; // fraction to try and de-synchronize with others
 void external_report_fn( )
 {
   static bool even = false;
@@ -301,9 +299,10 @@ void app_setup( )
       Serial.println("LittleFS mount failed again");
   }
 
+#if ESP8266
   void listDir(const char * dirname);
   listDir("/");
-
+#endif
 
   char file[] = "/fishX.bin";
 
@@ -313,16 +312,14 @@ void app_setup( )
     chans[i].load(file);
   }
 
-
-  channel_tick_ticker.attach( channel_tick_interval, [](){ defer_to_loop( channel_tick_fn ); } );
+  channel_tick_ticker.repeat( channel_tick_interval_ms, channel_tick_fn );
     // Follows NTP and ticks the channels accordingly
 
-  demand_check_ticker.attach( demand_check_interval, [](){ defer_to_loop( demand_check_fn ); } );
+  demand_check_ticker.repeat( demand_check_interval_ms, demand_check_fn );
     // Compares channel sensitivity to current stat inputs
 
-  external_report_ticker.attach( external_report_interval, [](){ defer_to_loop( external_report_fn ); } );
+  external_report_ticker.repeat( external_report_interval_ms, external_report_fn );
     // Reports to external entities every now and again
-
 }
 
 // ----------------------------------------------------------------------------
@@ -469,10 +466,12 @@ void cmd_delete( int channel, int time, int day )
 }
 
 
+#if ESP8266
+
 void listDir(const char * dirname) {
   Serial.printf("Listing directory: %s\n", dirname);
 
-  Dir root = LittleFS.openDir(dirname);
+  Dir root = LittleFS.oppenDir(dirname);
 
   while (root.next()) {
     File file = root.openFile("r");
@@ -489,3 +488,5 @@ void listDir(const char * dirname) {
     Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n", (tmstruct->tm_year) + 1900, (tmstruct->tm_mon) + 1, tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min, tmstruct->tm_sec);
   }
 }
+
+#endif

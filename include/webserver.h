@@ -42,7 +42,7 @@ public:
     server.end();
   }
 
-  virtual void wifi_got_ip( IPAddress ) // WifiObserver
+  virtual void wifi_got_ip( ) // WifiObserver
   {
     log.info( F("starting") );
     server.begin();

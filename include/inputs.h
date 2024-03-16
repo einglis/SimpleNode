@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Ticker.h>
+#include "schedule.h"
 
 namespace node {
 
@@ -15,11 +15,12 @@ public:
   }
 
 protected:
-  DebouncedInput( std::function<int()> input_fn_, int debounce_ms )
+  DebouncedInput( std::function<int()> input_fn, int debounce_ms )
     : state{ 0 }
     , count{ 0 }
     , max_count{ debounce_ms }
-    , input_fn{ input_fn_ }
+    , input_fn{ input_fn }
+    , ticker{ 1/*ms*/, [this](){ poll(); } }
     {
       if (!input_fn())
       {
@@ -31,7 +32,7 @@ protected:
 
   void begin()
   {
-    ticker.attach_ms( 1, [this](){ poll(); } );
+    ticker.begin();//attach_ms( 1, [this](){ poll(); } );
   }
 
   virtual void poll( )
@@ -42,7 +43,7 @@ protected:
     else if (!in && count > 0)
       --count;
 
-    if ((state == 0 && count == max_count) 
+    if ((state == 0 && count == max_count)
       || (state == 1 && count == 0))
     {
       state = !state;
@@ -51,18 +52,18 @@ protected:
   }
 
   int state;
-  virtual void new_state( ) = 0; 
+  virtual void new_state( ) = 0;
 
 private:
   int count;
   int max_count;
   std::function<int()> input_fn;
-  Ticker ticker;
+  node::IsrTicker ticker;
 };
 
 // ----------------------------------------------------------------------------
 
-class ButtonInput 
+class ButtonInput
   : public DebouncedInput
 {
 public:
@@ -81,8 +82,8 @@ public:
   }
 
 private:
-  virtual void new_state( ) 
-  { 
+  virtual void new_state( )
+  {
     if (state) // button up -> down
       event( Press, ++count );
     timer = 0;
@@ -126,7 +127,7 @@ private:
 
 // ----------------------------------------------------------------------------
 
-class SwitchInput 
+class SwitchInput
   : public DebouncedInput
 {
 public:

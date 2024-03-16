@@ -1,8 +1,7 @@
 #pragma once
 
-#include <Ticker.h>
-
-#include "wifi.h" // this is a bit ugly in a class that is fundamentally distinct from wifi
+#include "schedule.h"
+#include "wifi.h"
 
 namespace node {
 
@@ -25,30 +24,33 @@ namespace node {
 class Patterns
 {
 public:
-  Patterns( int pin )
+  Patterns( int pin, bool active_low = true )
     : pin{ pin }
-    , pattern{ 0 }
-  { }
+    , active_low{ active_low }
+  {
+    set( PATTERN_WIFI_DISCONNECTED );
+  }
 
   void begin()
   {
     pinMode( pin, OUTPUT );
 
-    ticker.attach_ms( 100, [this]() {
+    ticker.repeat( 100/*ms*/, [this]() {
       pattern = (pattern >> 1) | (pattern << 31); // roll right 1
-      digitalWrite( pin, ~(pattern) & 1 ); // active low
+      digitalWrite( pin, pattern & 1 );
     } );
   }
 
   void set( uint32_t p )
   {
-    pattern = p;
+    pattern = (active_low) ? ~p : p;
   }
 
 private:
   const int pin;
+  const bool active_low;
   uint32_t pattern;
-  Ticker ticker;
+  node::Ticker ticker;
 };
 
 // ------------------------------------
@@ -57,8 +59,8 @@ struct WifiPatterns
   : public Patterns
   , public WifiObserver
 {
-  WifiPatterns( int pin )
-    : Patterns( pin )
+  WifiPatterns( int pin, bool active_low = true )
+    : Patterns( pin, active_low )
     , got_ip{ false }
     , idle_pattern{ PATTERN_WIFI_GOT_IP }
   {
@@ -67,7 +69,7 @@ struct WifiPatterns
 
   virtual void wifi_down( ) { got_ip = false; set( PATTERN_WIFI_DISCONNECTED ); };
   virtual void wifi_up( )   { got_ip = false; set( PATTERN_WIFI_CONNECTED ); };
-  virtual void wifi_got_ip( IPAddress ) { got_ip = true; set( idle_pattern ); };
+  virtual void wifi_got_ip( ) { got_ip = true; set( idle_pattern ); };
 
   void set_idle( uint32_t p ) // the state we nominally sit in most of the time; hence 'idle'
   {

@@ -8,8 +8,12 @@ namespace webpages {
 void handle_default( AsyncWebServerRequest *request, node::Webserver& web,
   node::Uptime &uptime, const char* build_version )
 {
+  #if ESP8266
   static String reset_reason = ESP.getResetInfo();
     // capture this once; it's not going to change.
+  #elif ESP32
+  static String reset_reason = "Unknown on ESP32";
+  #endif
 
   auto buf = web.get_buffer();
   if (!buf)

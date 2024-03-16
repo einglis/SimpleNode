@@ -33,7 +33,11 @@ public:
 
   void begin()
   {
-    if (!LittleFS.begin())
+    #if ESP8266
+    if (!LittleFS.begin()) // default is to autoformat if needed
+    #elif ESP32
+    if (!LittleFS.begin( true /*autoformat if needed*/ ))
+    #endif
       log.error( "failed to mount file system" );
 
     (void)load( );

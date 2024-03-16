@@ -11,7 +11,7 @@ public:
   virtual uint32_t pixel( unsigned int ) { return col; }
   virtual void activate()
   {
-    ticker.attach(1, [this](){
+    node::ticker_repeat( ticker, 1000/*ms*/, [this](){
       col = rgb_wheel(rand());
     } );
   }

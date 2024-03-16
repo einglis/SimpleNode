@@ -1,7 +1,11 @@
 #pragma once
 
 #include <ESPAsyncWebServer.h>
+#if ESP8266
 #include <Updater.h>
+#elif ESP32
+#include <Update.h>
+#endif
 
 #include "schedule.h"
 
@@ -54,7 +58,7 @@ void handle_update_progress( AsyncWebServerRequest* request, String filename, si
   if (index == 0)
   {
       update_log.infof("start: %s", filename.c_str());
-      Update.runAsync(true);
+      //Update.runAsync(true);
       if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000))
       {
         update_log.error( F("failed to start") );
@@ -89,18 +93,19 @@ void handle_update_progress( AsyncWebServerRequest* request, String filename, si
 void handle_reboot( AsyncWebServerRequest* request )
 {
   request->send(200, "text/plain", "Rebooting..." );
-  defer_to_loop( [](){ delay(500); ESP.restart(); } );
+  delay(500);
+  ESP.restart();
 }
 
 // ----------------------------------------------------------------------------
 
-#include "update_helpers.h"
+//#include "update_helpers.h"
 
 void register_update( node::Webserver &web )
 {
-  static MyUpdaterHashClass muh;
-  static MyUpdaterVerifyClass muv;
-  Update.installSignature( &muh, &muv );
+  //static MyUpdaterHashClass muh;
+  //static MyUpdaterVerifyClass muv;
+  //Update.installSignature( &muh, &muv );
 
   web.add_handler( "/update", HTTP_GET,  webpages::handle_update );
   web.add_handler( "/update", HTTP_POST, webpages::handle_update_done, webpages::handle_update_progress );

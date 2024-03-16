@@ -2,7 +2,6 @@
 
 #include <Adafruit_MQTT.h>
 #include <Adafruit_MQTT_Client.h>
-#include <ESP8266WiFi.h>
 #include <Ticker.h>
 
 #include "logging.h"
@@ -131,7 +130,7 @@ public:
     mqtt_disconnected();
   }
 
-  virtual void wifi_got_ip( IPAddress ) // WifiObserver
+  virtual void wifi_got_ip( ) // WifiObserver
   {
     log.info( F("starting") );
     poll();
@@ -157,8 +156,8 @@ private:
   Adafruit_MQTT_Client *client;
   char pub_topic_buf[64];
   int pub_topic_len;
-  Ticker poll_ticker;
-  Ticker ping_ticker;
+  node::Ticker poll_ticker;
+  node::Ticker ping_ticker;
 
   struct MqttSubscription
   {
@@ -212,11 +211,9 @@ private:
     sprintf( buf, "online %s", my_wifi.localIP().toString().c_str() );
     (void)client->publish( make_pub_topic("connection"), buf, MQTT_QOS_1/*at least once*/, 1/*retain*/ );
 
-    ping_ticker.attach( MQTT_KEEPALIVE, [this]() {
-      defer_to_loop( [=]() {
-        log.debug( F("ping") );
-        client->ping(); // can block for up to 500 ms.
-      } );
+    ping_ticker.repeat( MQTT_KEEPALIVE * 1000/*ms*/, [this]() {
+      log.debug( F("ping") );
+      client->ping(); // can block for up to 500 ms.
     } );
   }
   void mqtt_disconnected( )
@@ -261,20 +258,14 @@ private:
       if (client->connect() == 0) /* 0 == connected*/
       {
         mqtt_connected();
-        poll_ticker.attach_ms( 100, [this](){
-          defer_to_loop( [=]() {
-            poll( true );
-          } );
-        } );
+        poll_ticker.repeat( 100/*ms*/, [this](){ poll( true ); } );
       }
       else
       {
         // the first connection attempt invariably fails as the library
         // starts with a subcription sequence of zero, which is invalid.
         log.info( F("connect failed; will try again") );
-        poll_ticker.once( 5, [this]() {
-          defer_to_loop( [=]() { poll( false ); } );
-        } );
+        poll_ticker.once( 5000/*ms*/, [this]() { poll( false ); } );
       }
     }
   }

@@ -1,10 +1,15 @@
 #pragma once
 
-#include <ESP8266WiFi.h>
+#if ESP8266
 #include <ESP8266HTTPClient.h>
+#include <ESP8266WiFi.h>
+#elif ESP32
+#include <HTTPClient.h>
+#include <WiFi.h>
+#endif
 
 #include "logging.h"
-#include "wifi.h"
+//#include "wifi.h"
 
 namespace node {
 
