@@ -3,44 +3,18 @@
 #include "common.h"
 
 #include <SimpleNode.h>
-using node::SwitchInput;
 
 #include "pegboard.h"
 
 // ----------------------------------------------------------------------------
 
-void switch_event( node::SwitchInput::Event f, const char* name ) // called in SYS context
-{
-    switch (f)
-    {
-      case SwitchInput::FlipOpen:
-          //app_log.infof( "%s OFF", name );
-          break;
-
-      case SwitchInput::FlipClose:
-          //app_log.infof( "%s DEMAND", name );
-          break;
-
-      default:
-          break;
-    }
-}
-
-
-// ----------------------------------------------------------------------------
-
-inline uint32_t rr1 (uint32_t x) { return (x << 31) | (x >> 1); } // roll right one
-
-
-// off, stat_off, stat_on
-// a given output has a time component and one or more stat components, one of which is always demanding.
-
 class Channel : public PegBoard
 {
 public:
-  Channel( const char* name, int output_pin, unsigned int max_sensitivity )
+  Channel( const char* name, int output_pin, int led_pin, unsigned int max_sensitivity )
     : name{ name }
     , pin{ output_pin }
+    , led{ led_pin }
     , max_sensitivity{ max_sensitivity }
     , boost_secs{ 0 }
     { }
@@ -52,21 +26,45 @@ public:
 
   const char* name;
   int pin;
-  unsigned int max_sensitivity;
+  int led;
+  uint32_t max_sensitivity;
   int boost_secs;
 };
 
 static Channel chans[] =
 {
-  Channel( "Hot Water",  app::outputs::demand_hw_pin,   1 ), // sensitive to only HW stat
-  Channel( "Downstairs", app::outputs::demand_ch1_pin, ~0 ), // sensitive to everything
-  Channel( "Upstairs",   app::outputs::demand_ch2_pin, ~0 ),
-  Channel( "Bathrooms",  app::outputs::demand_ch3_pin, ~0 ),
+  Channel( "Hot Water",  app::outputs::demand_hw_pin, app::outputs::demand_hw_led,   1 ), // sensitive to only HW stat
+  Channel( "Downstairs", app::outputs::demand_ch1_pin, app::outputs::demand_ch1_led, ~0 ), // sensitive to everything
+  Channel( "Upstairs",   app::outputs::demand_ch2_pin, app::outputs::demand_ch2_led, ~0 ),
+  Channel( "Bathrooms",  app::outputs::demand_ch3_pin, app::outputs::demand_ch3_led, ~0 ),
 };
-static const size_t num_chans = sizeof(chans) / sizeof(chans[0]);
 
+// ----------------------------------------------------------------------------
 
-uint32_t stats = 1 << 3; // perma-on
+class Stat
+{
+public:
+  Stat( const char* name, std::function<int()> input_fn )
+    : name{ name }
+    , demand{ input_fn }
+    { }
+
+  const char* name;
+  std::function<int()> demand;
+};
+
+static Stat stats[] =
+{
+  Stat( "Hot Water", [](){ return digitalRead( app::inputs::stat_hw_pin ); } ),
+  Stat( "Heating Main", [](){ return digitalRead( app::inputs::stat_ch1_pin ); } ),
+  Stat( "Heating Aux", [](){ return digitalRead( app::inputs::stat_ch2_pin ); } ),
+  Stat( "Always On", [](){ return true; } ),
+};
+
+uint32_t curr_stats = 0;
+  // basically a cache of the last time we read the stat inputs
+
+// ----------------------------------------------------------------------------
 
 int lazy_dump( char* buf, int buf_len )
 {
@@ -79,7 +77,7 @@ int lazy_dump( char* buf, int buf_len )
     if (chan.boost_secs)
       sense = chan.max_sensitivity;
 
-    if (sense & stats)
+    if (sense & curr_stats)
       bp += sprintf( bp, " -- ACTIVE" );
     else if (sense)
       bp += sprintf( bp, " -- sensitive" );
@@ -90,7 +88,7 @@ int lazy_dump( char* buf, int buf_len )
 
     bp += sprintf( bp, "<b>Curr stats: </b><samp>" );
     for (int j = 0; j < 8; j++)
-      *bp++ = (stats & (1 << j)) ? j+'0' : '_';
+      *bp++ = (curr_stats & (1 << j)) ? j+'0' : '_';
 
     bp += sprintf( bp, "</samp>, <b>True sense: </b><samp>" );
     for (int j = 0; j < 8; j++)
@@ -118,7 +116,7 @@ int lazy_dump( char* buf, int buf_len )
 // ----------------------------------------------------------------------------
 
 node::Ticker channel_tick_ticker;
-const int channel_tick_interval_ms = 0.5 * 1000; // ie 2Hz
+const int channel_tick_interval_ms = 500; // ie 2Hz
 void channel_tick_fn( )
 {
   static bool even = false;
@@ -152,32 +150,69 @@ void channel_tick_fn( )
 
 // ------------------------------------
 
-// XXXEDD: todo: disable all outputs while doing upgrades
+inline uint32_t rr1 (uint32_t x) { return (x << 31) | (x >> 1); } // roll right one
+static uint32_t blink = 0xFF00FF00;
+static uint32_t blink2 = 0x33333333;
 
 node::Ticker demand_check_ticker; // XXXEDD: IsrTicker?
-const int demand_check_interval_ms = 0.1 * 1000; // 10Hz, but not critical
+const int demand_check_interval_ms = 99; // 10Hz ish, but not critical
 void demand_check_fn( )
 {
-  static uint32_t blink = 0x00050005;
-  static uint32_t blink2 = 0x1b1b1b1b;
+  const uint32_t prev_stats = curr_stats;
+
+  uint32_t new_stats = 0;
+  int i = 0;
+  for (auto& s : stats)
+    new_stats |= (s.demand() << i++);
+
+  curr_stats = new_stats;
+    // by simply reading the raw inputs at a modest pace, we avoid any faff of
+    // debouncing; if any creeps through, the valve processing has a sufficiently
+    // slow response for it not to matter anyway.
+
+
   for (auto& c : chans)
   {
-    unsigned int sense = c.current_sensitivity();
+    uint32_t sense = c.current_sensitivity();
     if (c.boost_secs > 0)
       sense = c.max_sensitivity; // be sensitive to everything it can be
 
-    if (sense & stats)
+    if (sense & curr_stats)
+    {
       digitalWrite( c.pin, HIGH );
+      digitalWrite( c.led, HIGH );
+    }
     else if (c.boost_secs > 0)
-      digitalWrite( c.pin, blink2 & 1 );
-    else if (sense)
-      digitalWrite( c.pin, blink & 1 );
-    else
+    {
       digitalWrite( c.pin, LOW );
+      digitalWrite( c.led, blink2 & 1 );
+    }
+    else if (sense)
+    {
+      digitalWrite( c.pin, LOW );
+      digitalWrite( c.led, blink & 1 );
+    }
+    else
+    {
+      digitalWrite( c.pin, LOW );
+      digitalWrite( c.led, LOW );
+    }
   }
 
   blink = rr1( blink );
   blink2 = rr1( blink2 );
+
+
+  if (const uint32_t stats_delta = new_stats ^ prev_stats)
+  {
+    int i = 0;
+    for (auto& s : stats)
+    {
+      if (stats_delta & (1 << i))
+        app_log.infof( "%s %s", s.name, (new_stats & (1 << i)) ? "DEMAND" : "OFF" );
+      i++;
+    }
+  }
 };
 
 // ------------------------------------
@@ -191,7 +226,7 @@ void external_report_fn( )
 
   if (even)
   {
-    uint32_t my_stats = stats;
+    uint32_t my_stats = curr_stats;
     uint32_t my_channels = 0;
 
     for (auto& c : chans)
@@ -216,9 +251,9 @@ void external_report_fn( )
       char* bp = &buf[0];
 
       *bp++ = 'S';
-      *bp++ = (stats & 1) ? 'W' : '-';
-      *bp++ = (stats & 2) ? '1' : '-';
-      *bp++ = (stats & 4) ? '2' : '-';
+      *bp++ = (curr_stats & 1) ? 'W' : '-';
+      *bp++ = (curr_stats & 2) ? '1' : '-';
+      *bp++ = (curr_stats & 4) ? '2' : '-';
       *bp++ = ' ';
 
       *bp++ = 'C';
@@ -227,8 +262,8 @@ void external_report_fn( )
         const uint32_t sense = c.current_sensitivity();
         const uint32_t boost_sense = (c.boost_secs > 0) ? c.max_sensitivity : 0;
 
-        if (stats & sense) *bp++ = 'O'; // on
-        else if (stats & boost_sense) *bp++ = 'B'; // boosted
+        if (curr_stats & sense) *bp++ = 'O'; // on
+        else if (curr_stats & boost_sense) *bp++ = 'B'; // boosted
         else if (boost_sense) *bp++ = 'b'; // could be boosted
         else if (sense) *bp++ = 'o'; // could be on
         else *bp++ = '-'; // off
@@ -252,36 +287,21 @@ void external_report_fn( )
 
 // ----------------------------------------------------------------------------
 
-SwitchInput  stat_hw( [](){ return digitalRead( app::inputs::stat_hw_pin  ); } );
-SwitchInput stat_ch1( [](){ return digitalRead( app::inputs::stat_ch1_pin ); } );
-SwitchInput stat_ch2( [](){ return digitalRead( app::inputs::stat_ch2_pin ); } );
-
-void stat_update( node::SwitchInput::Event f, int index )
-{
-  if (f == SwitchInput::FlipClose)
-    stats |= (1 << index);
-  else if (f == SwitchInput::FlipOpen)
-    stats &= ~(1 << index);
-}
-
 void app_setup( )
 {
   pinMode( app::inputs::stat_hw_pin,  INPUT );
   pinMode( app::inputs::stat_ch1_pin, INPUT );
   pinMode( app::inputs::stat_ch2_pin, INPUT );
 
-   stat_hw.begin( [](SwitchInput::Event f, int){ switch_event( f, "Hot Water Stat" ); stat_update(f,0); } );
-  stat_ch1.begin( [](SwitchInput::Event f, int){ switch_event( f, "Heating 1 Stat" ); stat_update(f,1); } );
-  stat_ch2.begin( [](SwitchInput::Event f, int){ switch_event( f, "Heating 2 Stat" ); stat_update(f,2); } );
-
-   stat_hw.update_debounce_ms( 100 ); // thermostat inputs will probably be
-  stat_ch1.update_debounce_ms( 100 ); // quite clean, but we can afford to
-  stat_ch2.update_debounce_ms( 100 ); // slug the inputs at this end anyway.
-
   pinMode( app::outputs::demand_hw_pin,  OUTPUT );
   pinMode( app::outputs::demand_ch1_pin, OUTPUT );
   pinMode( app::outputs::demand_ch2_pin, OUTPUT );
   pinMode( app::outputs::demand_ch3_pin, OUTPUT );
+
+  pinMode( app::outputs::demand_hw_led,  OUTPUT );
+  pinMode( app::outputs::demand_ch1_led, OUTPUT );
+  pinMode( app::outputs::demand_ch2_led, OUTPUT );
+  pinMode( app::outputs::demand_ch3_led, OUTPUT );
 
   mqtt.on(  "", [](auto, auto data) { parse_cmd(data); } );
 

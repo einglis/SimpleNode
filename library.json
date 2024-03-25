@@ -15,9 +15,9 @@
     "adafruit/Adafruit NeoPixel": "*",
     "adafruit/Adafruit MQTT Library": "*",
     "arduino-libraries/NTPClient": "*",
-    "me-no-dev/ESP Async WebServer": "https://github.com/me-no-dev/ESPAsyncWebServer.git#f71e3d4"
+    "me-no-dev/ESP Async WebServer": "*"
   },
 
   "frameworks": "arduino",
-  "platforms": "esp8266"
+  "platforms": ["espressif8266", "espressif32"]
 }

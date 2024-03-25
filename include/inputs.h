@@ -20,7 +20,7 @@ protected:
     , count{ 0 }
     , max_count{ debounce_ms }
     , input_fn{ input_fn }
-    , ticker{ 1/*ms*/, [this](){ poll(); } }
+    , ticker{ 1_ms, [this](){ poll(); } }
     {
       if (!input_fn())
       {

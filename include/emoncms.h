@@ -31,7 +31,7 @@ public:
 
   void thing( uint32_t stats, uint32_t channels )
   {
-
+    return;
     // http.begin(my_wifi, "http://" EMONCMS_HOST, DEFAULT_EMONCMS_PORT );
 
     // int httpCode = http.sendRequest("GET", "/input/post?" "apikey=" EMONCMS_API_KEY "&node=123" "&csv=1,2,3");

@@ -21,6 +21,9 @@ void defer_to_loop(const std::function<void(void)>& fn);
 
 namespace node {
 
+constexpr uint32_t operator""_ms( unsigned long long ms ) { return ms; }
+constexpr uint32_t operator""_s( unsigned long long s ) { return 1000 * s; }
+
 class Ticker
 {
 public:
@@ -107,7 +110,7 @@ public:
 
   void begin( )
   {
-    #if ESP32
+    #if ESP32_
     // borrowed from framework-arduinoespressif32/libraries/Ticker/src/Ticker.cpp
     // which is Copyright (c) 2017 Bert Melis.
 
@@ -116,8 +119,8 @@ public:
     timer_config.callback = trampoline;
     timer_config.dispatch_method = ESP_TIMER_ISR;
     timer_config.name = "IsrTicker";
-    esp_timer_create( &timer_config, &timer );
-    esp_timer_start_periodic( timer, ms * 1000ULL);
+    Serial.printf("create %d\n", (int)esp_timer_create( &timer_config, &timer ) );
+    Serial.printf("start %d\n", (int)esp_timer_start_periodic( timer, ms * 1000ULL) );
 
     #elif ESP8266
     ticker.attach_ms( ms, callback_fn );
@@ -138,6 +141,9 @@ private:
   static void trampoline( void* context )
   {
     IsrTicker* t = reinterpret_cast< IsrTicker* >( context );
+    static int fish = 1;
+    fish = 1-fish;
+    digitalWrite(LED_BUILTIN, fish);
     t->callback_fn();
   }
   #endif
