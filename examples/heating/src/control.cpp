@@ -8,27 +8,71 @@
 
 // ----------------------------------------------------------------------------
 
+static uint32_t sense_pattern = 0xFF00FF00; // when sensitive to something but no active stats
+static uint32_t boost_pattern = 0x33333333; // when on boost but no relevant stats
+
+inline uint32_t rr1 (uint32_t x) { return (x << 31) | (x >> 1); } // roll right one
+
+// ----------------------------------------------------------------------------
+
 class Channel : public PegBoard
 {
 public:
-  Channel( const char* name, int output_pin, int led_pin, unsigned int max_sensitivity )
+  Channel( const char* name, int output_pin, int led_pin, senses_t max_sensitivity )
     : name{ name }
     , pin{ output_pin }
     , led{ led_pin }
+    , curr_state{ Inactive }
     , max_sensitivity{ max_sensitivity }
     , boost_secs{ 0 }
     { }
 
-  void boost_for( int length )
+  void boost_for( int length ) { boost_secs = length * 60; }
+  void second_tick( ) { if (boost_secs > 0) boost_secs--; }
+
+  enum channel_state { Inactive, Active, Sensitive, Boost, BoostSensitive };
+  channel_state state() { return curr_state; }
+
+  const char* const name;
+
+  void refresh( const uint32_t stats )
   {
-    boost_secs = length * 60;
+    const uint32_t sense = (boost_secs > 0) ? max_sensitivity : current_sensitivity();
+
+    if (sense & stats) // a sensitive stat is active
+    {
+      digitalWrite( pin, HIGH );
+      digitalWrite( led, HIGH );
+      curr_state = (boost_secs > 0) ? Boost : Active;
+    }
+    else if (boost_secs > 0) // we're on boost (and implicitly no relevant stat is active)
+    {
+      digitalWrite( pin, LOW );
+      digitalWrite( led, boost_pattern & 1 );
+      curr_state = BoostSensitive;
+    }
+    else if (sense) // we're sensitive to something (and implicitly no relevant stat is active)
+    {
+      digitalWrite( pin, LOW );
+      digitalWrite( led, sense_pattern & 1 );
+      curr_state = Sensitive;
+    }
+    else // off
+    {
+      digitalWrite( pin, LOW );
+      digitalWrite( led, LOW );
+      curr_state = Inactive;
+    }
   }
 
-  const char* name;
-  int pin;
-  int led;
-  uint32_t max_sensitivity;
+private:
+  const int pin;
+  const int led;
+  channel_state curr_state;
+  senses_t max_sensitivity;
   int boost_secs;
+
+  friend int lazy_dump( char* buf, int buf_len );
 };
 
 static Channel chans[] =
@@ -44,73 +88,171 @@ static Channel chans[] =
 class Stat
 {
 public:
-  Stat( const char* name, std::function<int()> input_fn )
+  Stat( const char* name, char id, std::function<int()> input_fn )
     : name{ name }
+    , id{ id }
+    , bit{ 1 << num_stats }
     , demand{ input_fn }
-    { }
+    {
+      ++num_stats;
+    }
 
-  const char* name;
+  const char* const name;
+  const char id;
+  const int bit;
   std::function<int()> demand;
+
+public:
+  static int num_stats;
 };
 
 static Stat stats[] =
 {
-  Stat( "Hot Water", [](){ return digitalRead( app::inputs::stat_hw_pin ); } ),
-  Stat( "Heating Main", [](){ return digitalRead( app::inputs::stat_ch1_pin ); } ),
-  Stat( "Heating Aux", [](){ return digitalRead( app::inputs::stat_ch2_pin ); } ),
-  Stat( "Always On", [](){ return true; } ),
+  Stat( "Hot Water", 'w', [](){ return digitalRead( app::inputs::stat_hw_pin ); } ),
+  Stat( "Heating Main", '1', [](){ return digitalRead( app::inputs::stat_ch1_pin ); } ),
+  Stat( "Heating Aux", '2', [](){ return digitalRead( app::inputs::stat_ch2_pin ); } ),
+  Stat( "Always On", 'a', [](){ return true; } ),
 };
-
-uint32_t curr_stats = 0;
-  // basically a cache of the last time we read the stat inputs
+int Stat::num_stats = 0;
 
 // ----------------------------------------------------------------------------
 
+class SystemState
+{
+public:
+  SystemState( )
+    : curr_stats{ 0 }
+    , state_string{ 0 }
+    { }
+
+  uint32_t update_stats( )
+  {
+    uint32_t new_stats = 0;
+    for (auto& s : stats)
+      if (s.demand())
+        new_stats |= s.bit;
+
+    if (const uint32_t stats_delta = new_stats ^ curr_stats)
+    {
+      for (auto& s : stats)
+        if (stats_delta & s.bit)
+          app_log.infof( "%s %s", s.name, (new_stats & s.bit) ? "DEMAND" : "OFF" );
+    }
+
+    return curr_stats = new_stats;
+  }
+
+  void report_changes( )
+  {
+      char buf[32]; // need 6 + 6 + 6 + 2 + 1 = 21
+      char* bp = &buf[0];
+
+      *bp++ = 'S';
+      for (auto& s : stats)
+        *bp++ = s.demand() ? s.id : '-';
+      *bp++ = ' ';
+
+      *bp++ = 'C';
+      for (auto& c : chans)
+      {
+         auto state = c.state();
+         switch (state)
+         {
+            case Channel::Active: *bp++ = 'A'; break;
+            case Channel::Sensitive: *bp++ = 'a'; break;
+            case Channel::Boost: *bp++ = 'B'; break;
+            case Channel::BoostSensitive: *bp++ = 'b'; break;
+            case Channel::Inactive:
+            default: *bp++ = '-'; break;
+         }
+      }
+       *bp++ = ' ';
+
+      *bp++ = 'V';
+      *bp++ = '-'; // close, opening, open, closing
+      *bp++ = '-';
+      *bp++ = '-';
+      *bp++ = '-';
+      *bp++ = ' ';
+
+      *bp++ = 'D';
+      *bp++ = '-'; // off, waiting, on, overrun
+      *bp++ = '\0';
+
+      // XXXEDD: todo, every now and again also; and rate limit
+
+      if (strcmp( buf, state_string ))
+      {
+        strcpy( state_string, buf );
+        Serial.print( buf );
+        mqtt.publish( "status", buf );
+      }
+  }
+
+private:
+    uint32_t curr_stats;
+    char state_string[32];
+};
+
+SystemState system_state;
+
+
 int lazy_dump( char* buf, int buf_len )
 {
-  char* bp = buf;
-  for (auto& chan: chans)
-  {
-    bp += sprintf( bp, "<h2>%s ", chan.name );
+  // char* bp = buf;
+  // for (auto& chan: chans)
+  // {
+  //   bp += sprintf( bp, "<h2>%s ", chan.name );
 
-   senses_t sense = chan.current_sensitivity();
-    if (chan.boost_secs)
-      sense = chan.max_sensitivity;
+  //   auto state = chan.state();
+  //   switch (state)
+  //   {
+  //     case Channel::Active:
+  //       bp += sprintf( bp, " -- ACTIVE" );
+  //       break;
+  //     case Channel::Boost:
+  //       bp += sprintf( bp, " -- On boost" );
+  //       break;
+  //     case Channel::BoostSensitive:
+  //       bp += sprintf( bp, " -- Boost sensitive" );
+  //       break;
+  //     case Channel::Sensitive:
+  //       bp += sprintf( bp, " -- Sensitive" );
+  //       break;
+  //     case Channel::Inactive:
+  //       bp += sprintf( bp, " -- OFF" );
+  //       break;
+  //     default:
+  //       bp += sprintf( bp, " -- unknown state %u", (unsigned int)state );
+  //       break;
+  //   }
 
-    if (sense & curr_stats)
-      bp += sprintf( bp, " -- ACTIVE" );
-    else if (sense)
-      bp += sprintf( bp, " -- sensitive" );
-    else
-      bp += sprintf( bp, " -- OFF" );
+  //   bp += sprintf( bp, "<b>Curr stats: </b><samp>" );
+  //   for (int j = 0; j < 8; j++)
+  //     *bp++ = (curr_stats & (1 << j)) ? j+'0' : '_';
 
-    bp += sprintf( bp, "</h2>\n" );
+  //   bp += sprintf( bp, "</samp>, <b>True sense: </b><samp>" );
+  //   for (int j = 0; j < 8; j++)
+  //     *bp++ = (chan.current_sensitivity() & (1 << j)) ? j+'0' : '_';
 
-    bp += sprintf( bp, "<b>Curr stats: </b><samp>" );
-    for (int j = 0; j < 8; j++)
-      *bp++ = (curr_stats & (1 << j)) ? j+'0' : '_';
+  //   bp += sprintf( bp, "</samp>, <b>Boost sense: </b><samp>" );
+  //   for (int j = 0; j < 8; j++)
+  //     *bp++ = (chan.max_sensitivity & (1 << j)) ? j+'0' : '_';
+  //   bp += sprintf( bp, "</samp>" );
+  //   if (chan.boost_secs > 0)
+  //     bp += sprintf( bp, " (active for %d seconds)", chan.boost_secs);
+  //   else
+  //     bp += sprintf( bp, " (inactive)");
 
-    bp += sprintf( bp, "</samp>, <b>True sense: </b><samp>" );
-    for (int j = 0; j < 8; j++)
-      *bp++ = (chan.current_sensitivity() & (1 << j)) ? j+'0' : '_';
+  //   bp += sprintf( bp, "<br>\n" );
 
-    bp += sprintf( bp, "</samp>, <b>Boost sense: </b><samp>" );
-    for (int j = 0; j < 8; j++)
-      *bp++ = (chan.max_sensitivity & (1 << j)) ? j+'0' : '_';
-    bp += sprintf( bp, "</samp>" );
-    if (chan.boost_secs > 0)
-      bp += sprintf( bp, " (active for %d seconds)", chan.boost_secs);
-    else
-      bp += sprintf( bp, " (inactive)");
-
-    bp += sprintf( bp, "<br>\n" );
-
-    bp += sprintf( bp, "<b>Schedule:</b>\n<pre>" );
-    bp += chan.pegboard_dump( bp, buf_len );
-    bp += sprintf( bp, "\n</pre>\n" );
-    bp += sprintf( bp, "<hr>\n" );
-  }
-  return bp-buf;
+  //   bp += sprintf( bp, "<b>Schedule:</b>\n<pre>" );
+  //   bp += chan.pegboard_dump( bp, buf_len );
+  //   bp += sprintf( bp, "\n</pre>\n" );
+  //   bp += sprintf( bp, "<hr>\n" );
+  // }
+  // return bp-buf;
+  return 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -124,8 +266,7 @@ void channel_tick_fn( )
 
   if (even) // ie every 1 Hz.
     for (auto& c : chans)
-      if (c.boost_secs > 0)
-        c.boost_secs--;
+      c.second_tick();
 
 
   if (!ntp.epoch_valid())
@@ -143,76 +284,32 @@ void channel_tick_fn( )
     app_log.debugf( "%d - %d:%d", dd, hh, mm );
 
     for (auto& c : chans)
-      c.tick(dd, hh, mm);
+      c.minute_tick(dd, hh, mm);
   }
   prev_epoch = curr_epoch;
 }
 
 // ------------------------------------
 
-inline uint32_t rr1 (uint32_t x) { return (x << 31) | (x >> 1); } // roll right one
-static uint32_t blink = 0xFF00FF00;
-static uint32_t blink2 = 0x33333333;
+
 
 node::Ticker demand_check_ticker; // XXXEDD: IsrTicker?
 const int demand_check_interval_ms = 99; // 10Hz ish, but not critical
 void demand_check_fn( )
 {
-  const uint32_t prev_stats = curr_stats;
-
-  uint32_t new_stats = 0;
-  int i = 0;
-  for (auto& s : stats)
-    new_stats |= (s.demand() << i++);
-
-  curr_stats = new_stats;
+  uint32_t new_stats = system_state.update_stats( );
     // by simply reading the raw inputs at a modest pace, we avoid any faff of
     // debouncing; if any creeps through, the valve processing has a sufficiently
     // slow response for it not to matter anyway.
 
-
   for (auto& c : chans)
-  {
-    uint32_t sense = c.current_sensitivity();
-    if (c.boost_secs > 0)
-      sense = c.max_sensitivity; // be sensitive to everything it can be
+    c.refresh( new_stats );
 
-    if (sense & curr_stats)
-    {
-      digitalWrite( c.pin, HIGH );
-      digitalWrite( c.led, HIGH );
-    }
-    else if (c.boost_secs > 0)
-    {
-      digitalWrite( c.pin, LOW );
-      digitalWrite( c.led, blink2 & 1 );
-    }
-    else if (sense)
-    {
-      digitalWrite( c.pin, LOW );
-      digitalWrite( c.led, blink & 1 );
-    }
-    else
-    {
-      digitalWrite( c.pin, LOW );
-      digitalWrite( c.led, LOW );
-    }
-  }
+  system_state.report_changes( );
 
-  blink = rr1( blink );
-  blink2 = rr1( blink2 );
-
-
-  if (const uint32_t stats_delta = new_stats ^ prev_stats)
-  {
-    int i = 0;
-    for (auto& s : stats)
-    {
-      if (stats_delta & (1 << i))
-        app_log.infof( "%s %s", s.name, (new_stats & (1 << i)) ? "DEMAND" : "OFF" );
-      i++;
-    }
-  }
+  // cycle the LED blinky patterns
+  sense_pattern = rr1( sense_pattern );
+  boost_pattern = rr1( boost_pattern );
 };
 
 // ------------------------------------
@@ -221,68 +318,68 @@ node::Ticker external_report_ticker;
 const int external_report_interval_ms = 5.02 * 1000; // fraction to try and de-synchronize with others
 void external_report_fn( )
 {
-  static bool even = false;
-  even = !even;
+  // static bool even = false;
+  // even = !even;
 
-  if (even)
-  {
-    uint32_t my_stats = curr_stats;
-    uint32_t my_channels = 0;
+  // if (even)
+  // {
+  //   uint32_t my_stats = curr_stats;
+  //   uint32_t my_channels = 0;
 
-    for (auto& c : chans)
-    {
-      my_channels <<= 8;
+  //   for (auto& c : chans)
+  //   {
+  //     my_channels <<= 8;
 
-      unsigned int sense = c.current_sensitivity();
-      if (c.boost_secs > 0)
-        my_channels |= 4;
+  //     unsigned int sense = c.current_sensitivity();
+  //     if (c.boost_secs > 0)
+  //       my_channels |= 4;
 
-      if (sense & my_stats)
-        my_channels |= 3; // bits 1 and 2
-      else if (sense)
-        my_channels |= 1;
-    }
+  //     if (sense & my_stats)
+  //       my_channels |= 3; // bits 1 and 2
+  //     else if (sense)
+  //       my_channels |= 1;
+  //   }
 
-    emoncms.thing( my_stats, my_channels );
-  }
-  else
-  {
-      char buf[32]; // need 20
-      char* bp = &buf[0];
+  //   emoncms.thing( my_stats, my_channels );
+  // }
+  // else
+  // {
+  //     char buf[32]; // need 20
+  //     char* bp = &buf[0];
 
-      *bp++ = 'S';
-      *bp++ = (curr_stats & 1) ? 'W' : '-';
-      *bp++ = (curr_stats & 2) ? '1' : '-';
-      *bp++ = (curr_stats & 4) ? '2' : '-';
-      *bp++ = ' ';
+  //     *bp++ = 'S';
+  //     *bp++ = (curr_stats & 1) ? 'W' : '-';
+  //     *bp++ = (curr_stats & 2) ? '1' : '-';
+  //     *bp++ = (curr_stats & 4) ? '2' : '-';
+  //     *bp++ = ' ';
 
-      *bp++ = 'C';
-      for (auto& c : chans)
-      {
-        const uint32_t sense = c.current_sensitivity();
-        const uint32_t boost_sense = (c.boost_secs > 0) ? c.max_sensitivity : 0;
+  //     *bp++ = 'C';
+  //     for (auto& c : chans)
+  //     {
+  //       const uint32_t sense = c.current_sensitivity();
+  //       const uint32_t boost_sense = (c.boost_secs > 0) ? c.max_sensitivity : 0;
 
-        if (curr_stats & sense) *bp++ = 'O'; // on
-        else if (curr_stats & boost_sense) *bp++ = 'B'; // boosted
-        else if (boost_sense) *bp++ = 'b'; // could be boosted
-        else if (sense) *bp++ = 'o'; // could be on
-        else *bp++ = '-'; // off
-      }
-      *bp++ = ' ';
+  //       if (curr_stats & sense) *bp++ = 'O'; // on
+  //       else if (curr_stats & boost_sense) *bp++ = 'B'; // boosted
+  //       else if (boost_sense) *bp++ = 'b'; // could be boosted
+  //       else if (sense) *bp++ = 'o'; // could be on
+  //       else *bp++ = '-'; // off
+  //     }
+  //     *bp++ = ' ';
 
-      *bp++ = 'V';
-      *bp++ = '-'; // close, opening, open, closing
-      *bp++ = '-';
-      *bp++ = '-';
-      *bp++ = '-';
-      *bp++ = ' ';
+  //     *bp++ = 'V';
+  //     *bp++ = '-'; // close, opening, open, closing
+  //     *bp++ = '-';
+  //     *bp++ = '-';
+  //     *bp++ = '-';
+  //     *bp++ = ' ';
 
-      *bp++ = 'D';
-      *bp++ = '-'; // off, waiting, on, overrun
-      *bp++ = '\0';
+  //     *bp++ = 'D';
+  //     *bp++ = '-'; // off, waiting, on, overrun
+  //     *bp++ = '\0';
 
-      mqtt.publish( "status", buf );
-  }
+  //     mqtt.publish( "status", buf );
+  // }
 }
 
 // ----------------------------------------------------------------------------

@@ -121,7 +121,7 @@ public:
     }
   }
 
-  void tick( int day, int hour, int mins )
+  void minute_tick( int day, int hour, int mins )
   {
     const int new_time = hour * 60 + mins;
 
