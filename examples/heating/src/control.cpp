@@ -179,14 +179,27 @@ public:
       *bp++ = '-'; // off, waiting, on, overrun
       *bp++ = '\0';
 
-      // XXXEDD: todo, every now and again also; and rate limit
+      static bool unsent_changes = false;
+      static int hold_off = 0;
 
       if (strcmp( buf, state_string ))
       {
         strcpy( state_string, buf );
-        Serial.print( buf );
-        mqtt.publish( "status", buf );
+        app_log.infof( state_string );
+
+        unsent_changes = true;
+        if (hold_off < 2)
+          hold_off = 2; // wait a moment in case another change is incoming
       }
+
+      if ( (unsent_changes && hold_off == 0)
+        || (hold_off < -600) ) // not sent anything in a minute or so (see note below)
+      {
+        mqtt.publish( "status", state_string );
+        unsent_changes = false;
+        hold_off = 10; // 10 loops at ~10 Hz is about a second, but the precise value is not critical
+      }
+      --hold_off;
   }
 
 private:
@@ -291,9 +304,7 @@ void channel_tick_fn( )
 
 // ------------------------------------
 
-
-
-node::Ticker demand_check_ticker; // XXXEDD: IsrTicker?
+node::Ticker demand_check_ticker;
 const int demand_check_interval_ms = 99; // 10Hz ish, but not critical
 void demand_check_fn( )
 {
@@ -311,76 +322,6 @@ void demand_check_fn( )
   sense_pattern = rr1( sense_pattern );
   boost_pattern = rr1( boost_pattern );
 };
-
-// ------------------------------------
-
-node::Ticker external_report_ticker;
-const int external_report_interval_ms = 5.02 * 1000; // fraction to try and de-synchronize with others
-void external_report_fn( )
-{
-  // static bool even = false;
-  // even = !even;
-
-  // if (even)
-  // {
-  //   uint32_t my_stats = curr_stats;
-  //   uint32_t my_channels = 0;
-
-  //   for (auto& c : chans)
-  //   {
-  //     my_channels <<= 8;
-
-  //     unsigned int sense = c.current_sensitivity();
-  //     if (c.boost_secs > 0)
-  //       my_channels |= 4;
-
-  //     if (sense & my_stats)
-  //       my_channels |= 3; // bits 1 and 2
-  //     else if (sense)
-  //       my_channels |= 1;
-  //   }
-
-  //   emoncms.thing( my_stats, my_channels );
-  // }
-  // else
-  // {
-  //     char buf[32]; // need 20
-  //     char* bp = &buf[0];
-
-  //     *bp++ = 'S';
-  //     *bp++ = (curr_stats & 1) ? 'W' : '-';
-  //     *bp++ = (curr_stats & 2) ? '1' : '-';
-  //     *bp++ = (curr_stats & 4) ? '2' : '-';
-  //     *bp++ = ' ';
-
-  //     *bp++ = 'C';
-  //     for (auto& c : chans)
-  //     {
-  //       const uint32_t sense = c.current_sensitivity();
-  //       const uint32_t boost_sense = (c.boost_secs > 0) ? c.max_sensitivity : 0;
-
-  //       if (curr_stats & sense) *bp++ = 'O'; // on
-  //       else if (curr_stats & boost_sense) *bp++ = 'B'; // boosted
-  //       else if (boost_sense) *bp++ = 'b'; // could be boosted
-  //       else if (sense) *bp++ = 'o'; // could be on
-  //       else *bp++ = '-'; // off
-  //     }
-  //     *bp++ = ' ';
-
-  //     *bp++ = 'V';
-  //     *bp++ = '-'; // close, opening, open, closing
-  //     *bp++ = '-';
-  //     *bp++ = '-';
-  //     *bp++ = '-';
-  //     *bp++ = ' ';
-
-  //     *bp++ = 'D';
-  //     *bp++ = '-'; // off, waiting, on, overrun
-  //     *bp++ = '\0';
-
-  //     mqtt.publish( "status", buf );
-  // }
-}
 
 // ----------------------------------------------------------------------------
 
@@ -402,7 +343,6 @@ void app_setup( )
 
   mqtt.on(  "", [](auto, auto data) { parse_cmd(data); } );
 
-//  mqtt.on( "emon",     [](auto, auto){ emoncms.thing(); } );
 
 
 
@@ -434,9 +374,6 @@ void app_setup( )
 
   demand_check_ticker.repeat( demand_check_interval_ms, demand_check_fn );
     // Compares channel sensitivity to current stat inputs
-
-  external_report_ticker.repeat( external_report_interval_ms, external_report_fn );
-    // Reports to external entities every now and again
 }
 
 // ----------------------------------------------------------------------------
