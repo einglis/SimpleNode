@@ -144,3 +144,32 @@ void valve_follower_begin( )
 {
   valve_follower_ticker.repeat( 1/*ms*/, valve_follower_poll );
 }
+
+size_t valve_follower_get_valves( char *bp )
+{
+  for (auto chan : channels)
+  {
+    switch (chan->state())
+    {
+      case Channel::Closed: *bp++ = '-'; break;
+      case Channel::Opening: *bp++ = 'o'; break;
+      case Channel::Open: *bp++ = 'O'; break;
+      case Channel::Closing: *bp++ = 'c'; break;
+      defatult: *bp++ = '?'; break;
+    }
+  }
+  return num_channels;
+}
+
+size_t valve_follower_get_boiler( char *bp )
+{
+  switch (boiler.state())
+  {
+    case Boiler::Idle: *bp++ = '-'; break;
+    case Boiler::Underrun: *bp++ = 'u'; break;
+    case Boiler::Demand: *bp++ = 'D'; break;
+    case Boiler::Overrun: *bp++ = 'o'; break;
+    default: *bp++ = '?'; break;
+  }
+  return 1;
+}

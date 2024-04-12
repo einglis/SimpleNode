@@ -163,21 +163,19 @@ public:
             case Channel::Boost: *bp++ = 'B'; break;
             case Channel::BoostSensitive: *bp++ = 'b'; break;
             case Channel::Inactive:
-            default: *bp++ = '-'; break;
+            default: *bp++ = '?'; break;
          }
       }
        *bp++ = ' ';
 
       *bp++ = 'V';
-      *bp++ = '-'; // close, opening, open, closing
-      *bp++ = '-';
-      *bp++ = '-';
-      *bp++ = '-';
+      bp += valve_follower_get_valves( bp );
       *bp++ = ' ';
 
-      *bp++ = 'D';
-      *bp++ = '-'; // off, waiting, on, overrun
+      *bp++ = 'B';
+      bp += valve_follower_get_boiler( bp );
       *bp++ = '\0';
+
 
       static bool unsent_changes = false;
       static int hold_off = 0;
@@ -317,6 +315,7 @@ void demand_check_fn( )
     c.refresh( new_stats );
 
   system_state.report_changes( );
+    // XXXEDD: slow this down?
 
   // cycle the LED blinky patterns
   sense_pattern = rr1( sense_pattern );
@@ -343,7 +342,6 @@ void app_setup( )
 
   mqtt.on(  "", [](auto, auto data) { parse_cmd(data); } );
 
-  void valve_follower_begin();
   valve_follower_begin();
 
 
