@@ -1,12 +1,10 @@
 
-#include <Arduino.h> // temporary
-
 #include "app_config.h"
 #include <SimpleNode.h>
 
-#include "Boiler.copy.h"
-#include "Channel.copy.h"
-#include "Controller.copy.h"
+#include "Boiler.h"
+#include "Channel.h"
+#include "Controller.h"
 
 using valves::Boiler;
 using valves::Channel;
