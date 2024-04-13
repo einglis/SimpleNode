@@ -162,7 +162,7 @@ public:
             case Channel::Sensitive: *bp++ = 'a'; break;
             case Channel::Boost: *bp++ = 'B'; break;
             case Channel::BoostSensitive: *bp++ = 'b'; break;
-            case Channel::Inactive:
+            case Channel::Inactive: *bp++ = '-'; break;
             default: *bp++ = '?'; break;
          }
       }
