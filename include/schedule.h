@@ -132,7 +132,7 @@ private:
   #if ESP32
   esp_timer_handle_t timer;
   #elif ESP8266
-  Ticker ticker;
+  ::Ticker ticker;
   #endif
   const uint32_t ms;
   const callback_function_t callback_fn;
