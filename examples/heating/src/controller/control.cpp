@@ -280,24 +280,21 @@ void channel_tick_fn( )
       c.second_tick();
 
 
-  if (!ntp.epoch_valid())
+  if (!ntp.time_valid())
     return;
 
-  static long int prev_epoch = ntp.epoch_time();
-  long int curr_epoch = ntp.epoch_time();
-
-  if ((curr_epoch != prev_epoch) && (ntp.epoch_secs(curr_epoch) == 0)) // we'll never be more than a minute away from the correct tick
+  static time_t prev_time = ntp.now();
+  time_t curr_time = ntp.now();
+  if (curr_time != prev_time)
   {
-    const int dd = ntp.epoch_day( curr_epoch );
-    const int hh = ntp.epoch_hrs( curr_epoch );
-    const int mm = ntp.epoch_mins( curr_epoch );
-
-    app_log.debugf( "%d - %d:%d", dd, hh, mm );
-
-    for (auto& c : chans)
-      c.minute_tick(dd, hh, mm);
+    struct tm tm = ntp.decode( curr_time );
+    if (tm.tm_sec == 0)  // we'll never be more than a minute away from the correct tick
+    {
+      for (auto& c : chans)
+        c.minute_tick( tm.tm_wday, tm.tm_hour, tm.tm_min );
+    }
   }
-  prev_epoch = curr_epoch;
+  prev_time = curr_time;
 }
 
 // ------------------------------------
@@ -423,16 +420,16 @@ void cmd_set( int channel, unsigned int sensitivity, bool on_n_off, int time, in
 
   if (day == 0)
   {
-    if (ntp.epoch_valid())
+    if (ntp.time_valid())
     {
-      const long int curr_epoch = ntp.epoch_time();
-      const int dd = (ntp.epoch_day( curr_epoch ) + 6) % 7; // ntp has 0 == sun, but we want 0 == mon.
-      printf("today; %d\n", dd);
+      const time_t curr_time = ntp.now();
+      struct tm tm = ntp.decode( curr_time );
+      Serial.printf("today is %d\n", tm.tm_wday);
 
       if (on_n_off)
-        c->on_peg( dd, time, sensitivity );
+        c->on_peg( tm.tm_wday, time, sensitivity );
       else
-        c->off_peg( dd, time, sensitivity );
+        c->off_peg( tm.tm_wday, time, sensitivity );
     }
   }
   else if (day == 8)
@@ -482,16 +479,16 @@ void cmd_delete( int channel, int time, int day )
 
   if (day == 0)
   {
-    if (ntp.epoch_valid())
+    if (ntp.time_valid())
     {
-      const long int curr_epoch = ntp.epoch_time();
-      const int dd = (ntp.epoch_day( curr_epoch ) + 6) % 7; // ntp has 0 == sun, but we want 0 == mon.
-      printf("today; %d\n", dd);
+      const time_t curr_time = ntp.now();
+      struct tm tm = ntp.decode( curr_time );
+      Serial.printf("today is %d\n", tm.tm_wday);
 
       if (time >= 0)
-        c->remove_peg( dd, time );
+        c->remove_peg( tm.tm_wday, time );
       else
-        c->remove_pegs( dd );
+        c->remove_pegs( tm.tm_wday );
     }
   }
   else if (day == 8)

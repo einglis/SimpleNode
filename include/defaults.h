@@ -17,7 +17,11 @@
 #endif
 
 #ifndef NTP_HOST
-#define NTP_HOST "europe.pool.ntp.org"
+#define NTP_HOST "uk.pool.ntp.org"
+#endif
+#ifndef NTP_TIMEZONE
+#define NTP_TIMEZONE "GMT0BST,M3.5.0/1,M10.5.0" // Europe/London
+    // https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
 #endif
 
 #ifndef MQTT_HOST
