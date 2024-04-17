@@ -50,11 +50,11 @@ void setup( )
   patterns.begin();
 
   wifi.begin();
-  ntp.begin();
+  ntp.begin(10 * 60); // log time every ten minutes
 
   syslog.begin( SYSLOG_IP ); // after wifi
   syslog.set_level( node::Syslog::severity_info );
-  //node::Logger::use_syslog( syslog );
+  node::Logger::use_syslog( syslog );
 
   mqtt.client_id( MQTT_CLIENT_ID );
   mqtt.pub_topic( MQTT_PUB_TOPIC );

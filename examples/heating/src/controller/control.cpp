@@ -210,60 +210,59 @@ SystemState system_state;
 
 int lazy_dump( char* buf, int buf_len )
 {
-  // char* bp = buf;
-  // for (auto& chan: chans)
-  // {
-  //   bp += sprintf( bp, "<h2>%s ", chan.name );
+  char* bp = buf;
+  for (auto& chan: chans)
+  {
+    bp += sprintf( bp, "<h2>%s ", chan.name );
 
-  //   auto state = chan.state();
-  //   switch (state)
-  //   {
-  //     case Channel::Active:
-  //       bp += sprintf( bp, " -- ACTIVE" );
-  //       break;
-  //     case Channel::Boost:
-  //       bp += sprintf( bp, " -- On boost" );
-  //       break;
-  //     case Channel::BoostSensitive:
-  //       bp += sprintf( bp, " -- Boost sensitive" );
-  //       break;
-  //     case Channel::Sensitive:
-  //       bp += sprintf( bp, " -- Sensitive" );
-  //       break;
-  //     case Channel::Inactive:
-  //       bp += sprintf( bp, " -- OFF" );
-  //       break;
-  //     default:
-  //       bp += sprintf( bp, " -- unknown state %u", (unsigned int)state );
-  //       break;
-  //   }
+    auto state = chan.state();
+    switch (state)
+    {
+      case Channel::Active:
+        bp += sprintf( bp, " -- ACTIVE" );
+        break;
+      case Channel::Boost:
+        bp += sprintf( bp, " -- On boost" );
+        break;
+      case Channel::BoostSensitive:
+        bp += sprintf( bp, " -- Boost sensitive" );
+        break;
+      case Channel::Sensitive:
+        bp += sprintf( bp, " -- Sensitive" );
+        break;
+      case Channel::Inactive:
+        bp += sprintf( bp, " -- OFF" );
+        break;
+      default:
+        bp += sprintf( bp, " -- unknown state %u", (unsigned int)state );
+        break;
+    }
 
-  //   bp += sprintf( bp, "<b>Curr stats: </b><samp>" );
-  //   for (int j = 0; j < 8; j++)
-  //     *bp++ = (curr_stats & (1 << j)) ? j+'0' : '_';
+    // bp += sprintf( bp, "<b>Curr stats: </b><samp>" );
+    // for (int j = 0; j < 8; j++)
+    //   *bp++ = (curr_stats & (1 << j)) ? j+'0' : '_';
 
-  //   bp += sprintf( bp, "</samp>, <b>True sense: </b><samp>" );
-  //   for (int j = 0; j < 8; j++)
-  //     *bp++ = (chan.current_sensitivity() & (1 << j)) ? j+'0' : '_';
+    // bp += sprintf( bp, "</samp>, <b>True sense: </b><samp>" );
+    // for (int j = 0; j < 8; j++)
+    //   *bp++ = (chan.current_sensitivity() & (1 << j)) ? j+'0' : '_';
 
-  //   bp += sprintf( bp, "</samp>, <b>Boost sense: </b><samp>" );
-  //   for (int j = 0; j < 8; j++)
-  //     *bp++ = (chan.max_sensitivity & (1 << j)) ? j+'0' : '_';
-  //   bp += sprintf( bp, "</samp>" );
-  //   if (chan.boost_secs > 0)
-  //     bp += sprintf( bp, " (active for %d seconds)", chan.boost_secs);
-  //   else
-  //     bp += sprintf( bp, " (inactive)");
+    // bp += sprintf( bp, "</samp>, <b>Boost sense: </b><samp>" );
+    // for (int j = 0; j < 8; j++)
+    //   *bp++ = (chan.max_sensitivity & (1 << j)) ? j+'0' : '_';
+    // bp += sprintf( bp, "</samp>" );
+    // if (chan.boost_secs > 0)
+    //   bp += sprintf( bp, " (active for %d seconds)", chan.boost_secs);
+    // else
+    //   bp += sprintf( bp, " (inactive)");
 
-  //   bp += sprintf( bp, "<br>\n" );
+    bp += sprintf( bp, "<br>\n" );
 
-  //   bp += sprintf( bp, "<b>Schedule:</b>\n<pre>" );
-  //   bp += chan.pegboard_dump( bp, buf_len );
-  //   bp += sprintf( bp, "\n</pre>\n" );
-  //   bp += sprintf( bp, "<hr>\n" );
-  // }
-  // return bp-buf;
-  return 0;
+    bp += sprintf( bp, "<b>Schedule:</b>\n<pre>" );
+    bp += chan.pegboard_dump( bp, buf_len );
+    bp += sprintf( bp, "\n</pre>\n" );
+    bp += sprintf( bp, "<hr>\n" );
+  }
+  return bp-buf;
 }
 
 // ----------------------------------------------------------------------------
