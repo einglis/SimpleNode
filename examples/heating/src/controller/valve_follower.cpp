@@ -42,13 +42,17 @@ Channel *channels[] = { &hw, &ch1, &ch2, &ch3 };
 const size_t num_channels = sizeof(channels)/sizeof(channels[0]);
 
 BoilerEx boiler{ };
-Controller control( channels, num_channels, (Channel*)&ch1 /*overrun*/, (Boiler*)&boiler );
+Controller control{ channels, num_channels, (Channel*)&ch3 /*overrun*/, (Boiler*)&boiler };
 
 // ------------------------------------
 
 node::Ticker valve_follower_ticker;
 void valve_follower_begin( )
 {
+  boiler.overrun_time( 5 * 60 * 1000L ); // five minutes in ms
+  boiler.underrun_time( Channel::valve_close_time_ms + 1000L );
+    // to match the actual valve controller.
+
   valve_follower_ticker.repeat( 1/*ms*/, []() {
     for (auto chan : channels)
       chan->ms_poll();

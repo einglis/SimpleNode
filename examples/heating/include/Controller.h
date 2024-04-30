@@ -37,11 +37,17 @@ public:
 
     if (this_demand == 0 && curr_demand != 0)
     {
-      curr_overrun = default_overrun;
-
-      for (auto i = 0; i < num_channels; i++)
-        if (curr_open & (1 << i))
-          curr_overrun = channels[i]; // favour later channels
+      if (default_overrun)
+      {
+        curr_overrun = default_overrun;
+      }
+      else
+      {
+        curr_overrun = channels[num_channels-1]; // safety net
+        for (auto i = 0; i < num_channels; i++)
+          if (curr_open & (1 << i))
+            curr_overrun = channels[i]; // favour later channels
+      }
     }
 
     curr_demand = this_demand;

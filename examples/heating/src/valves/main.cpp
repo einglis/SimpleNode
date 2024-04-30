@@ -55,11 +55,6 @@ void pattern( int pin, unsigned int pattern )
 
 // ----------------------------------------------------------------------------
 
-
-
-
-
-
 class ChannelEx : public Channel
 {
 public:
@@ -102,15 +97,8 @@ ChannelEx ch3( inputs::control_ch3_pin, outputs::valve_ch3_pin, outputs::valve_c
 Channel *channels[] = { &hw, &ch1, &ch2, &ch3 };
 const size_t num_channels = sizeof(channels)/sizeof(channels[0]);
 
-Channel *overrun_ch = &ch1; // the valve that gets opened on the overrun
-
-// ideally, ch3 would be the default choice, since that'll be the towel rads
-// but it's likely this'll be in use before that's plumbed, so needs to work
-// safely with only one heating valve: ch1.
-
 BoilerEx boiler( outputs::boiler_pin, outputs::boiler_led );
-
-Controller control( channels, num_channels, overrun_ch, &boiler );
+Controller control{ channels, num_channels, (Channel*)&ch3 /*overrun*/, &boiler };
 
 // ----------------------------------------------------------------------------
 
