@@ -78,10 +78,15 @@ private:
 static Channel chans[] =
 {
   Channel( "Hot Water",  app::outputs::demand_hw_pin, app::outputs::demand_hw_led,   1 ), // sensitive to only HW stat
+  #ifdef PRE_PLUMB_VALVES
+  Channel( "Heating", app::outputs::demand_ch1_pin, app::outputs::demand_ch1_led, ~0 ), // sensitive to everything
+  #else
   Channel( "Downstairs", app::outputs::demand_ch1_pin, app::outputs::demand_ch1_led, ~0 ), // sensitive to everything
   Channel( "Upstairs",   app::outputs::demand_ch2_pin, app::outputs::demand_ch2_led, ~0 ),
   Channel( "Bathrooms",  app::outputs::demand_ch3_pin, app::outputs::demand_ch3_led, ~0 ),
+  #endif
 };
+static const size_t num_chans = sizeof(chans) / sizeof(chans[0]);
 
 // ----------------------------------------------------------------------------
 
@@ -320,6 +325,8 @@ void demand_check_fn( )
 
 // ----------------------------------------------------------------------------
 
+static char config_filename[] = "/fishX.bin"; // not const, because we butcher it each time.
+
 void app_setup( )
 {
   pinMode( app::inputs::stat_hw_pin,  INPUT );
@@ -356,12 +363,11 @@ void app_setup( )
   listDir("/");
 #endif
 
-  char file[] = "/fishX.bin";
-
-  for (int i = 0; i <= 3; i++)
+  int i = 0;
+  for (auto& c : chans)
   {
-    file[4] = i + '0';
-    chans[i].load(file);
+    config_filename[5] = '0' + i++;
+    c.load( config_filename );
   }
 
   channel_tick_ticker.repeat( channel_tick_interval_ms, channel_tick_fn );
@@ -373,18 +379,12 @@ void app_setup( )
 
 // ----------------------------------------------------------------------------
 
-Channel* id_to_channel( int channel );
-Channel* id_to_channel( int channel )
+Channel* id_to_channel( int id )
 {
-  switch (channel)
-  {
-    case 0: return &chans[0];
-    case 1: return &chans[1];
-    case 2: return &chans[2];
-    case 3: return &chans[3];
-    default:
-      return nullptr;
-  }
+  if (id >= 0 && id < num_chans)
+    return &chans[ id ];
+  else
+    return nullptr;
 }
 
 // ----------------------------------------------------------------------------
@@ -450,9 +450,8 @@ void cmd_set( int channel, unsigned int sensitivity, bool on_n_off, int time, in
       c->off_peg( day-1, time, sensitivity );
   }
 
-  char file[] = "/fishX.bin";
-  file[4] = channel + '0';
-  c->save(file);
+  config_filename[5] = '0' + channel;
+  c->save( config_filename );
 }
 
 void cmd_boost( int channel, int time )
@@ -509,9 +508,8 @@ void cmd_delete( int channel, int time, int day )
       c->remove_pegs( day-1 );
   }
 
-  char file[] = "/fishX.bin";
-  file[4] = channel + '0';
-  c->save(file);
+  config_filename[5] = '0' + channel;
+  c->save( config_filename );
 }
 
 

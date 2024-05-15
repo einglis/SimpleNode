@@ -88,7 +88,17 @@ private:
   static void output_fn( void* context, int d ) { digitalWrite( ((BoilerEx*)context)->out_pin, d ); }
 };
 
+#ifdef PRE_PLUMB_VALVES
+ChannelEx hw( inputs::control_hw_pin, outputs::valve_hw_pin, outputs::valve_hw_led,  "HW"  );
+ChannelEx ch1( inputs::control_ch1_pin, outputs::valve_ch1_pin, outputs::valve_ch1_led, "CH1" );
 
+Channel *channels[] = { &hw, &ch1 };
+const size_t num_channels = sizeof(channels)/sizeof(channels[0]);
+
+BoilerEx boiler( outputs::boiler_pin, outputs::boiler_led );
+Controller control{ channels, num_channels, nullptr /*no default overrun*/, &boiler };
+
+#else
 ChannelEx hw( inputs::control_hw_pin, outputs::valve_hw_pin, outputs::valve_hw_led,  "HW"  );
 ChannelEx ch1( inputs::control_ch1_pin, outputs::valve_ch1_pin, outputs::valve_ch1_led, "CH1" );
 ChannelEx ch2( inputs::control_ch2_pin, outputs::valve_ch2_pin, outputs::valve_ch2_led, "CH2" );
@@ -99,6 +109,7 @@ const size_t num_channels = sizeof(channels)/sizeof(channels[0]);
 
 BoilerEx boiler( outputs::boiler_pin, outputs::boiler_led );
 Controller control{ channels, num_channels, (Channel*)&ch3 /*overrun*/, &boiler };
+#endif
 
 // ----------------------------------------------------------------------------
 

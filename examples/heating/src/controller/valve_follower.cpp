@@ -33,6 +33,17 @@ private:
   static void output_fn( void*, int ) { }
 };
 
+#ifdef PRE_PLUMB_VALVES
+ChannelEx hw{ app::outputs::demand_hw_pin }; // real controller outputs are valve follower inputs
+ChannelEx ch1{ app::outputs::demand_ch1_pin };
+
+Channel *channels[] = { &hw, &ch1 };
+const size_t num_channels = sizeof(channels)/sizeof(channels[0]);
+
+BoilerEx boiler{ };
+Controller control{ channels, num_channels, nullptr /*no default overrun*/, (Boiler*)&boiler };
+
+#else
 ChannelEx hw{ app::outputs::demand_hw_pin }; // real controller outputs are valve follower inputs
 ChannelEx ch1{ app::outputs::demand_ch1_pin };
 ChannelEx ch2{ app::outputs::demand_ch2_pin };
@@ -43,6 +54,7 @@ const size_t num_channels = sizeof(channels)/sizeof(channels[0]);
 
 BoilerEx boiler{ };
 Controller control{ channels, num_channels, (Channel*)&ch3 /*overrun*/, (Boiler*)&boiler };
+#endif
 
 // ------------------------------------
 
