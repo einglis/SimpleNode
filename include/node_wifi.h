@@ -4,8 +4,9 @@
 //#include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
 #elif ESP32
-//#include <HTTPClient.h>
+#include <HTTPClient.h>
 #include <WiFi.h>
+//#include <esp_event.h> 
 #endif
 
 #include "events.h"
@@ -42,7 +43,7 @@ public:
   void begin()
   {
     ::WiFi.macAddress( mac );
-    //log.infof( "MAC: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
+    log.infof( "MAC: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
 
     ::WiFi.hostname( WIFI_HOSTNAME );
     ::WiFi.persistent(false); // don't stash config in Flash

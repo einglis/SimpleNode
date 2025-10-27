@@ -28,7 +28,7 @@ const char form[] PROGMEM =
 
 void handle_update( AsyncWebServerRequest* request )
 {
-  request->send_P( 200, "text/html", form );
+  request->send( 200, "text/html", form ); /* was send_P, removed for ESP32 */
 }
 
 const char reset_form[] PROGMEM =

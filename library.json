@@ -15,7 +15,8 @@
     "adafruit/Adafruit NeoPixel": "*",
     "adafruit/Adafruit MQTT Library": "*",
     "arduino-libraries/NTPClient": "*",
-    "me-no-dev/ESP Async WebServer": "*"
+    "esp32async/ESPAsyncWebServer": "*",
+    "esp32async/AsyncTCP": "*"
   },
 
   "frameworks": "arduino",

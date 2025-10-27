@@ -3,7 +3,7 @@
 #include <ESPAsyncWebServer.h>
 
 #include "logging.h"
-#include "wifi.h"
+#include "node_wifi.h"
 
 namespace node {
 

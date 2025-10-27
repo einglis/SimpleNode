@@ -5,7 +5,7 @@
 #include <Ticker.h>
 
 #include "logging.h"
-#include "wifi.h"
+#include "node_wifi.h"
 
 static void my_strncpy( char* &dst, const char* src, int &n ) // ugly :(
 {

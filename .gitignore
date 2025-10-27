@@ -3,3 +3,4 @@ private_config.h
 .pio/
 build.gen.h
 .gitignore
+build/

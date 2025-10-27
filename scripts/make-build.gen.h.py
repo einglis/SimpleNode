@@ -3,7 +3,10 @@ from datetime import datetime
 import os
 Import("env")
 
-build_date = datetime.now().strftime('%a %-d %b %Y, %H:%M:%S')  # eg 'Fri 5 Jan 2024, 11:36:19'
+now = datetime.now()
+day = now.day # fudge as Windows does not support "%-d" modifier for no leading zeroes.
+
+build_date = now.strftime(f"%a {day} %b %Y, %H:%M:%S")  # eg 'Fri 5 Jan 2024, 11:36:19'
 
 git_describe = os.popen(f"cd {env['PROJECT_DIR']}; git describe --tags --always --dirty")
 build_version = git_describe.read()

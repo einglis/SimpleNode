@@ -13,4 +13,4 @@
 #include "include/schedule.h"
 #include "include/uptime.h"
 #include "include/webserver.h"
-#include "include/wifi.h"
+#include "include/node_wifi.h"
