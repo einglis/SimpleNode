@@ -1,8 +1,7 @@
 #pragma once
 
-#include <Ticker.h>
-
 #include "logging.h"
+#include "schedule.h"
 
 namespace node {
 
@@ -15,8 +14,8 @@ public:
 
   void begin( )
   {
-    update_ticker.attach( 1, [this](){ counter++; } );
-    report_ticker.attach( 6, [this](){ report(); } );
+    update_ticker.repeat( 1000/*ms*/, [this](){ counter++; } );
+    report_ticker.repeat( 6000/*ms*/, [this](){ report(); } );
   }
 
   uint32_t secs( ) { return counter; }
@@ -49,8 +48,8 @@ public:
 
 private:
   uint32_t counter; // 32 bits is enough for 136 years of seconds
-  Ticker update_ticker;
-  Ticker report_ticker;
+  node::Ticker update_ticker;
+  node::Ticker report_ticker;
 
   void report( )
   {

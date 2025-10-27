@@ -1,77 +1,81 @@
 #pragma once
 
-#include <ESP8266WiFi.h>
-#include <NTPClient.h>
 #include <Ticker.h>
-#include <WiFiUdp.h> // multiple options disambiguated by inclusion of ESP8266WiFi.h, somehow
-
 #include "logging.h"
-#include "wifi.h"
 
 namespace node {
 
 class Ntp
-  : public node::WifiObserver
 {
 public:
-  Ntp()
-    : client( my_wifi, NTP_HOST/*lazy*/ )
+  Ntp( )
+    : is_valid{ false }
   { }
 
-  void begin( int report_interval = 0 )
+  void begin( int report_interval_secs = 0 )
   {
-    if (report_interval)
-      report_ticker.attach_scheduled( report_interval, [this](){
-        log.infof( "time: %s", client.getFormattedTime() );
-      } );
+    #ifdef ESP32
+    configTime(0, 0, NTP_HOST);  // 0, 0 because we will use TZ in the next line
+    setenv("TZ", NTP_TIMEZONE, 1/*overwrite*/);
+    tzset();
+    #elif ESP8266
+    configTime(NTP_TIMEZONE, NTP_HOST);
+    #endif
 
-    WiFi::register_observer( *this );
+    if (report_interval_secs)
+      report_ticker.repeat( report_interval_secs * 1000/*ms*/, [this]() { log_time( now() ); } );
   }
 
-  bool epoch_valid( ) { return client.isTimeSet(); }
-  long int epoch_time( ) { return client.getEpochTime(); }
-
-  static int epoch_day( long int e )  { return (e / 86400L + 4) % 7; } // 0 == sunday
-  static int epoch_hrs( long int e )  { return (e / 3600) % 24; }
-  static int epoch_mins( long int e ) { return (e / 60) % 60; }
-  static int epoch_secs( long int e ) { return  e % 60; }
-
-  virtual void wifi_got_ip( IPAddress ) // WifiObserver
+  bool time_valid( )
   {
-    client.begin();
-    refresh();
+    if (!is_valid)
+    {
+      struct tm tm = decode( now() );
+      if (tm.tm_year > 2020)
+      {
+        // it is possible to register a callback for when an NTP update is recevied but
+        // a) I had confusing hangs with that and b) the ESP32 will retain its time over
+        // a restart (not reset) so it might be immediately valid, even without an update.
+        log.info("Time has become plausibly valid");
+        log_time( now() );
+        is_valid = true;
+      }
+    }
+    return is_valid;
   }
 
-  virtual void wifi_down() // WifiObserver
+  static time_t now( )
   {
-    refresh_ticker.detach();
-    client.end();
+    return time(nullptr);
+  }
+
+  static struct tm decode( time_t t )
+  {
+      struct tm tm;
+      localtime_r(&t, &tm);
+      tm.tm_year += 1900;
+      tm.tm_mon += 1;
+      tm.tm_wday = (tm.tm_wday + 6) % 7;  // convert 0 == Sunday to 0 == Monday   ... my ball, my rules!
+      return tm;
   }
 
 private:
-  WiFiUDP my_wifi;
-  NTPClient client;
-  Ticker report_ticker;
-  Ticker refresh_ticker;
-
-  void refresh( int phase = 0 )
+  static void log_time( time_t time )
   {
-    log.debug( F("refresh") );
+    const char* wdays[] = { "Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun" };
+    struct tm tm = decode( time );
 
-    int wait;
-    if (client.update())
-    {
-      wait = 10 * 60; // ten minutes after success
-      phase = 0; // restart at 1 second on next fail
-    }
-    else
-    {
-      wait = 1 << phase; // 1, 2, 4,... seconds
-      phase = min( phase + 1, 5 ); // 1 << 5 == 32 seconds
-    }
+    char buf[128];
+    char* bp = &buf[0];
+    bp += sprintf(bp, "%d-%02d-%02d", tm.tm_year, tm.tm_mon, tm.tm_mday); // date YYYY-MM-DD
+    bp += sprintf(bp, ", %02d:%02d:%02d", tm.tm_hour, tm.tm_min, tm.tm_sec); // time: HH:MM:SS
+    bp += sprintf(bp, " (%s%s)", wdays[tm.tm_wday], tm.tm_isdst?", DST":"");
 
-    refresh_ticker.once_scheduled( wait, [this, phase](){ refresh( phase ); } );
+    log.info(buf);
   }
+
+  bool is_valid;
+  node::Ticker report_ticker;
 
   static Logger log;
 };

@@ -61,6 +61,8 @@ static bool parse_tok_sensitivity( const char *sp, size_t len, unsigned int &sen
   {
     if (sp[i] == 'w' || sp[i] == 'W')
       sense |= (1 << 0);
+    else if (sp[i] == 'a' || sp[i] == 'A')
+      sense |= (1 << 3); // magic; 3 == always on
     else if (sp[i] >= '0' && sp[i] <= '7') // magic; 7 == max sensitivity
       sense |= (1 << (sp[i] - '0'));
     else

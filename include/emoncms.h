@@ -1,10 +1,15 @@
 #pragma once
 
-#include <ESP8266WiFi.h>
+#if ESP8266
 #include <ESP8266HTTPClient.h>
+#include <ESP8266WiFi.h>
+#elif ESP32
+#include <HTTPClient.h>
+#include <WiFi.h>
+#endif
 
 #include "logging.h"
-#include "wifi.h"
+#include "node_wifi.h"
 
 namespace node {
 
@@ -26,7 +31,7 @@ public:
 
   void thing( uint32_t stats, uint32_t channels )
   {
-
+    return;
     // http.begin(my_wifi, "http://" EMONCMS_HOST, DEFAULT_EMONCMS_PORT );
 
     // int httpCode = http.sendRequest("GET", "/input/post?" "apikey=" EMONCMS_API_KEY "&node=123" "&csv=1,2,3");

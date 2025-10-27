@@ -23,18 +23,22 @@ struct Config
 
 namespace outputs {
   enum {
-    status_pin = 2, // nodeMCU D4
-    demand_hw_pin  = 14, // nodeMCU D5
-    demand_ch1_pin = 12, // nodeMCU D6
-    demand_ch2_pin = 13, // nodeMCU D7
-    demand_ch3_pin = 15, // nodeMCU D8
+    status_led = 15,
+    demand_hw_led = 1,
+    demand_ch1_led = 3,
+    demand_ch2_led = 5,
+    demand_ch3_led = 6,
+    demand_hw_pin  = 37,
+    demand_ch1_pin = 33,
+    demand_ch2_pin = 18,
+    demand_ch3_pin = 16,
   };
 }
 namespace inputs {
   enum {
-    stat_hw_pin  = 16, // nodeMCU D0
-    stat_ch1_pin =  5, // nodeMCU D1
-    stat_ch2_pin =  4, // nodeMCU D2
+    stat_hw_pin  = 21,
+    stat_ch1_pin =  34,
+    stat_ch2_pin =  38,
   };
 }
 

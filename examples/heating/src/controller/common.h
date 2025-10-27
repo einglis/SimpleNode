@@ -16,3 +16,8 @@ extern node::Logger app_log;
 
 void app_setup( );
 bool parse_cmd( const char *str );
+
+
+void valve_follower_begin();
+size_t valve_follower_get_valves( char *bp );
+size_t valve_follower_get_boiler( char *bp );

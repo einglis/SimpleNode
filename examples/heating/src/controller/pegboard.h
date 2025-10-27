@@ -31,7 +31,7 @@ class PegBoard
 public:
   PegBoard( )
     : curr_time{ 0 }
-    , curr_day{ 0 }
+    , curr_day{ -1 } // ensure the first minute tick will take action
     , curr_pegs{ 0 }
     { }
 
@@ -121,7 +121,7 @@ public:
     }
   }
 
-  void tick( int day, int hour, int mins )
+  void minute_tick( int day, int hour, int mins )
   {
     const int new_time = hour * 60 + mins;
 

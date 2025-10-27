@@ -20,3 +20,12 @@ WifiObserver::~WifiObserver( ) { }
 Syslog* Logger::syslog;
 
 } // node
+
+
+// #include "events.h"
+
+// #include <Schedule.h>
+// void defer_to_loop(const std::function<void(void)>& fn)
+// {
+//     (void)schedule_function(fn);
+// }
